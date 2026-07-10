@@ -1,0 +1,11 @@
+FROM robotis/turtlebot3:jazzy-latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ffmpeg \
+        alsa-utils \
+        v4l-utils \
+        file \
+    && rm -rf /var/lib/apt/lists/*

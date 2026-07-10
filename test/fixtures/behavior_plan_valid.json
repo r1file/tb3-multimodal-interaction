@@ -1,0 +1,21 @@
+{
+  "input_id": "behavior_fixture_valid_001",
+  "source": "unit_test",
+  "validated": true,
+  "fallback_used": false,
+  "reply": "I see the object. I will stay here.",
+  "reply_language": "en",
+  "emotion": "neutral",
+  "tts_style": "calm",
+  "face": "neutral",
+  "motion": [
+    {
+      "action": "turn_left",
+      "duration": 0.2
+    },
+    {
+      "action": "stop",
+      "duration": 0.1
+    }
+  ]
+}

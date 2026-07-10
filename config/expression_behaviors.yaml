@@ -1,0 +1,53 @@
+expressions:
+  neutral:
+    face: neutral
+    motions:
+      - action: stop
+        duration: 0.0
+  smile:
+    face: smile
+    motions:
+      - action: turn_left
+        duration: 0.20
+      - action: turn_right
+        duration: 0.20
+  happy:
+    face: happy
+    motions:
+      - action: turn_left
+        duration: 0.28
+      - action: turn_right
+        duration: 0.28
+  sad:
+    face: sad
+    motions:
+      - action: move_backward
+        duration: 0.30
+      - action: move_forward_slow
+        duration: 0.20
+  surprised:
+    face: surprised
+    motions:
+      - action: move_backward
+        duration: 0.25
+      - action: move_forward_slow
+        duration: 0.17
+  concerned:
+    face: concerned
+    motions:
+      - action: turn_right
+        duration: 0.22
+      - action: turn_left
+        duration: 0.22
+  comforting:
+    face: comforting
+    motions:
+      - action: move_forward_slow
+        duration: 0.22
+      - action: move_backward
+        duration: 0.33
+  thinking:
+    face: thinking
+    motions:
+      - action: look_around
+        duration: 0.55

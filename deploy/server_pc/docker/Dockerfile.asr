@@ -1,0 +1,31 @@
+FROM ros-cui/turtlebot3:jazzy-av-tools
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_NO_CACHE_DIR=1
+ENV SENSEVOICE_MODEL_DIR=/root/.cache/modelscope/hub/models/iic/SenseVoiceSmall
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        aria2 \
+        ca-certificates \
+        curl \
+        python3-pip \
+        python3-setuptools \
+        python3-wheel \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install --break-system-packages \
+        --index-url https://download.pytorch.org/whl/cpu \
+        torch \
+        torchaudio && \
+    python3 -m pip install --break-system-packages \
+        funasr \
+        modelscope \
+        sentencepiece \
+        soundfile
+
+RUN mkdir -p "${SENSEVOICE_MODEL_DIR}"
+
+COPY model_cache/SenseVoiceSmall/ ${SENSEVOICE_MODEL_DIR}/
+
+CMD ["bash"]

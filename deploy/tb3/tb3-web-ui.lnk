@@ -1,0 +1,10 @@
+table Icon
+  Caption: TB3 UI
+  ToolTip.Caption: Open TurtleBot3 Web UI
+  Icon: /home/turtlebot3/tb3_ui/tb3-web-ui.xpm
+  X: 96
+  Y: 160
+  Command: /home/turtlebot3/tb3_ui/start_tb3_web_ui.sh http://127.0.0.1:8765
+  Width: 64
+  Height: 64
+end

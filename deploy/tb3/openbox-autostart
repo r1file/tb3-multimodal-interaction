@@ -1,0 +1,4 @@
+# Start lightweight desktop icons for TB3 touch UI recovery.
+if command -v idesk >/dev/null 2>&1; then
+  pgrep -x idesk >/dev/null 2>&1 || idesk >/tmp/tb3_ui_idesk.log 2>&1 &
+fi

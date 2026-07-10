@@ -1,0 +1,43 @@
+FROM ros-cui/turtlebot3:jazzy-av-tools
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        cmake \
+        curl \
+        espeak-ng \
+        python3-dev \
+        python3-pip \
+        python3-setuptools \
+        python3-wheel \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install --break-system-packages \
+        --index-url https://download.pytorch.org/whl/cpu \
+        torch && \
+    python3 -m pip install --break-system-packages \
+        soundfile \
+        numpy \
+        requests \
+        "kokoro>=0.9.4" \
+        "misaki[ja,zh]" && \
+    python3 -m unidic download
+
+RUN python3 - <<'PY'
+from kokoro import KPipeline
+
+for lang_code, voice, text in [
+    ('a', 'af_heart', 'Hello, I am ready.'),
+    ('j', 'jf_alpha', 'こんにちは。'),
+    ('z', 'zf_xiaoxiao', '你好。'),
+]:
+    pipeline = KPipeline(lang_code=lang_code)
+    for _ in pipeline(text, voice=voice):
+        break
+PY
+
+CMD ["bash"]

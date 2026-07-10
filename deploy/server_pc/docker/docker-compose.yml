@@ -1,0 +1,81 @@
+services:
+  turtlebot3:
+    container_name: turtlebot3
+    image: ros-cui/turtlebot3:jazzy-av-tools
+    build:
+      context: .
+      dockerfile: Dockerfile.av-tools
+    tty: true
+    restart: unless-stopped
+    cap_add:
+      - SYS_NICE
+    ulimits:
+      rtprio: 99
+      rttime: -1
+      memlock: 8428281856
+    network_mode: host
+    ipc: host
+    pid: host
+    environment:
+     - DISPLAY=${DISPLAY}
+     - QT_X11_NO_MITSHM=1
+     - TURTLEBOT3_MODEL=burger
+     - LDS_MODEL=LDS-02
+    volumes:
+      - /dev:/dev
+      - /dev/shm:/dev/shm
+      - /run/udev:/run/udev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ./workspace:/workspace
+      - ../../:/root/turtlebot3_ws/src/turtlebot3
+    privileged: true
+    command: bash
+
+  tb3_asr:
+    container_name: tb3_asr
+    image: ros-cui/turtlebot3:jazzy-asr
+    build:
+      context: .
+      dockerfile: Dockerfile.asr
+    tty: true
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    depends_on:
+      - turtlebot3
+    environment:
+     - TURTLEBOT3_MODEL=burger
+     - LDS_MODEL=LDS-02
+    volumes:
+      - /dev/shm:/dev/shm
+      - ./workspace:/workspace
+    command: >
+      bash -lc "source /opt/ros/jazzy/setup.bash &&
+      source /workspace/ros2_ws/install/setup.bash &&
+      source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh &&
+      ros2 launch tb3_multimodal_interaction asr_adapter.launch.py"
+
+  tb3_tts:
+    container_name: tb3_tts
+    image: ros-cui/turtlebot3:jazzy-tts
+    build:
+      context: .
+      dockerfile: Dockerfile.tts
+    tty: true
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    depends_on:
+      - turtlebot3
+    environment:
+     - TURTLEBOT3_MODEL=burger
+     - LDS_MODEL=LDS-02
+    volumes:
+      - /dev/shm:/dev/shm
+      - ./workspace:/workspace
+    command: >
+      bash -lc "source /opt/ros/jazzy/setup.bash &&
+      source /workspace/ros2_ws/install/setup.bash &&
+      source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh &&
+      ros2 launch tb3_multimodal_interaction tts_adapter.launch.py"
