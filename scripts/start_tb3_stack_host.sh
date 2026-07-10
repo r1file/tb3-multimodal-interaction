@@ -90,13 +90,46 @@ echo "TB3 bringup Run! found; starting device/UI layer."
 docker exec -d turtlebot3 bash -lc \
   'bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/start_device_stack.sh >/tmp/device_stack.log 2>&1'
 
-echo "Waiting for TB3 device-stack health..."
+echo "Waiting for TB3 device-stack discovery..."
 if ! docker exec turtlebot3 bash -lc '
-    for _ in $(seq 1 20); do
-      bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/health_check_full.sh tb3 && exit 0
-      sleep 0.5
+    set +u
+    source /opt/ros/jazzy/setup.bash
+    source /workspace/ros2_ws/install/setup.bash
+    source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
+    set -u
+
+    required_nodes=(
+      /camera_capture_node
+      /expression_behavior_node
+      /face_display_node
+      /mic_capture_node
+      /motion_controller_node
+      /speech_player_node
+    )
+
+    ready=0
+    for _ in $(seq 1 30); do
+      nodes="$(timeout 4s ros2 node list 2>/dev/null || true)"
+      ready=1
+      for node in "${required_nodes[@]}"; do
+        if ! grep -qx "$node" <<<"$nodes"; then
+          ready=0
+          break
+        fi
+      done
+      if [ "$ready" -eq 1 ]; then
+        break
+      fi
+      sleep 1
     done
-    exit 1
+    if [ "$ready" -ne 1 ]; then
+      echo "Timed out waiting for TB3 device-stack nodes." >&2
+      exit 1
+    fi
+
+    echo "TB3 device-stack nodes discovered; running full health check."
+    ROS_TOPIC_RETRY_S=6 \
+      bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/health_check_full.sh tb3
   '; then
   echo "Error: TB3 device-stack health check failed." >&2
   echo "Executor log: /tmp/device_stack.log inside the turtlebot3 container" >&2

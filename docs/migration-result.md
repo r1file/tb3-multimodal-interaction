@@ -15,6 +15,9 @@ Migration date: 2026-07-10.
   file, and credential-pattern checks passed.
 - Behavior contract: 10/10 tests passed locally, on Server PC, and on TB3.
 - Full TB3 health check: `TB3_STACK_HEALTH_PASS`.
+- TB3 host startup now waits for the six device-stack nodes to appear in the
+  ROS graph before running the full health check, avoiding cold-start discovery
+  false negatives.
 - Server services: `turtlebot3`, `tb3_asr`, `tb3_tts`, `server_ui`, `vlm`, and
   `behavior` all reported `ok`.
 - VLM trace `server_ui_1783682398149`: accepted, no fallback, English response,
