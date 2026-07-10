@@ -28,13 +28,13 @@ nohup ros2 run tb3_multimodal_interaction behavior_executor_node --ros-args \
 echo \$! >'$PID_PATH'
 sleep 1
 if ! kill -0 \$(cat '$PID_PATH') >/dev/null 2>&1; then
-  echo 'Week5 behavior executor failed to stay running' >&2
+  echo 'Behavior executor failed to stay running' >&2
   tail -n 80 '$LOG_PATH' >&2 || true
   exit 1
 fi
 ps -p \$(cat '$PID_PATH') -o pid=,cmd=
 "
 
-echo "Week5 behavior executor started in $CONTAINER"
+echo "Behavior executor started in $CONTAINER"
 echo "dry_run=$DRY_RUN"
 echo "Log: $LOG_PATH"

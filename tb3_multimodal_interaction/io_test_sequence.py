@@ -5,7 +5,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 
-class Week2TestSequence(Node):
+class IoTestSequence(Node):
     def __init__(self):
         super().__init__('io_test_sequence')
         self.motion_pub = self.create_publisher(String, '/robot_motion/action_cmd', 10)
@@ -32,7 +32,7 @@ class Week2TestSequence(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = Week2TestSequence()
+    node = IoTestSequence()
     try:
         node.run()
     finally:

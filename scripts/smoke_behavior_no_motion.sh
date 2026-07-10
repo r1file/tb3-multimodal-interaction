@@ -8,7 +8,7 @@ source /workspace/ros2_ws/install/setup.bash
 source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
 set -u
 
-echo "Checking Week2/3 stack before Week5 hardware smoke..."
+echo "Checking the multimodal stack before the no-motion hardware smoke..."
 bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/health_check_full.sh full
 
 rm -f "$LOG_PATH"
@@ -97,7 +97,7 @@ try:
         "source": "hardware_smoke",
         "validated": True,
         "fallback_used": False,
-        "reply": "Week five no motion hardware smoke. I will stay here.",
+        "reply": "No-motion hardware smoke. I will stay here.",
         "emotion": "neutral",
         "tts_style": "calm",
         "face": "thinking",

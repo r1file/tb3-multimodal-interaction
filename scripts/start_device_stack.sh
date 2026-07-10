@@ -22,6 +22,6 @@ if [ -z "${TB3_CMD_VEL_TOPIC:-}" ]; then
 fi
 
 export TB3_CMD_VEL_TOPIC="${TB3_CMD_VEL_TOPIC:-/cmd_vel}"
-echo "Week2 motion cmd_vel topic: $TB3_CMD_VEL_TOPIC"
+echo "TB3 motion cmd_vel topic: $TB3_CMD_VEL_TOPIC"
 
 exec ros2 launch tb3_multimodal_interaction device_stack.launch.py

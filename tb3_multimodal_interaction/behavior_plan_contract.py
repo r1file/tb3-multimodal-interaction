@@ -1,4 +1,4 @@
-"""Week5 behavior-plan validation and output mapping helpers."""
+"""Behavior-plan validation and output mapping helpers."""
 
 from __future__ import annotations
 

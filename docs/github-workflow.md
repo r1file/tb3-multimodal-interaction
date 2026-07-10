@@ -7,6 +7,11 @@
 - Put machine values in ignored `.env` files.
 - Tag the first verified three-host migration before removing old package trees.
 
+The runtime hosts use independent read-only deploy keys. Their networks block
+GitHub SSH port 22, so each checkout stores a repository-local `core.sshCommand`
+that routes SSH through `ssh.github.com:443`. No personal token is copied to a
+runtime host.
+
 Before every push:
 
 ```bash

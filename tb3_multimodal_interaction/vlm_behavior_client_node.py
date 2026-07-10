@@ -23,7 +23,7 @@ from tb3_multimodal_interaction.behavior_plan_contract import (
 )
 
 
-SYSTEM_PROMPT = """You are the Week5 TurtleBot3 behavior planner.
+SYSTEM_PROMPT = """You are the TurtleBot3 multimodal behavior planner.
 Return exactly one JSON object and no markdown.
 Every response MUST be a complete behavior-plan JSON object.
 Never omit these required keys: input_id, source, validated, fallback_used, reply, reply_language, emotion, tts_style, face, motion.

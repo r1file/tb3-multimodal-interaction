@@ -15,7 +15,7 @@ HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Week3 Robot Control</title>
+  <title>TB3 Multimodal Control</title>
   <style>
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
@@ -76,8 +76,8 @@ HTML = """<!doctype html>
 <main>
   <header>
     <div>
-      <h1>Week3 Robot Control</h1>
-      <p class="subtitle">Server PC dashboard for ROS2 graph, ASR, TTS, AV, TB3 face state, and Week5 behavior execution</p>
+      <h1>TB3 Multimodal Control</h1>
+      <p class="subtitle">Server PC dashboard for ROS2 graph, ASR, TTS, AV, TB3 face state, and behavior execution</p>
     </div>
     <div id="clock" class="clock">loading...</div>
   </header>
@@ -93,7 +93,7 @@ HTML = """<!doctype html>
         </div>
       </div>
       <div class="panel">
-        <p class="panel-title">Week5 Behavior</p>
+        <p class="panel-title">Behavior</p>
         <textarea id="prompt" placeholder="Optional text-only prompt"></textarea>
         <div class="buttons" style="margin-top:10px">
           <button id="ai-dry-run" class="control-btn accent">Dry-run AI response</button>
@@ -144,7 +144,7 @@ HTML = """<!doctype html>
         </div>
       </div>
       <div class="panel">
-        <p class="panel-title">Week5 Behavior Status</p>
+        <p class="panel-title">Behavior Status</p>
         <div class="status-grid">
           <div class="card"><h3>AI</h3><div class="metric"><span>state</span><b id="aiState">-</b></div></div>
           <div class="card"><h3>Behavior</h3><div class="metric"><span>state</span><b id="behaviorState">-</b></div></div>

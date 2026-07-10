@@ -14,7 +14,7 @@ docker exec turtlebot3 bash -lc '
      command -v speaker-test >/dev/null 2>&1 &&
      command -v ffmpeg >/dev/null 2>&1 &&
      command -v v4l2-ctl >/dev/null 2>&1; then
-    echo "Week2 audio/video tools already available in container."
+    echo "TB3 audio/video tools already available in container."
     exit 0
   fi
   apt-get update

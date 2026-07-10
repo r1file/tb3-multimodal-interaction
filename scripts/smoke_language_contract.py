@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Week5 text-only language consistency smoke test."""
+"""Text-only language consistency smoke test."""
 
 from __future__ import annotations
 
