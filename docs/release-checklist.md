@@ -25,8 +25,8 @@ safety gates are complete.
 
 ## Open demo gates
 
-- [ ] P4 showcase and regression rows are frozen.
-- [ ] Three clean-start demo sequences pass.
+- [x] P4 showcase and regression rows are frozen.
+- [x] Three clean-start demo sequences pass.
 - [ ] Visual/OCR answers are checked against the physical scene.
 - [ ] Any real-motion row passes the user-controlled floor and emergency-stop
   check after dry-run.

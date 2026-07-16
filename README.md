@@ -43,6 +43,9 @@ Before publishing a change, run `bash scripts/validate_repository.sh`. In a ROS
 Jazzy environment this executes the complete test suite; outside ROS it runs
 the repository-safe subset plus syntax, asset, size, and credential checks.
 
+The frozen P4 scenario matrix and operator gates are documented in the
+[official demo runbook](docs/demo-runbook.md).
+
 Real motion is disabled by default. Set `TB3_BEHAVIOR_DRY_RUN=false` only after
 clearing the floor and confirming emergency-stop access. See the
 [hardware contract](docs/hardware.md) and [known limitations](docs/limitations.md).

@@ -7,6 +7,8 @@ runtime instruction.
 ## Current operator documentation
 
 - [Fresh-host reproduction](reproduction.md): prerequisite through rollback.
+- [Official demo runbook](demo-runbook.md): frozen P4 rows, verdicts, and
+  operator-only physical gates.
 - [Prerequisites and external assets](prerequisites.md): tested hosts, versions,
   models, credentials, paths, and network assumptions.
 - [Preflight](preflight.md): read-only install and runtime readiness checks.

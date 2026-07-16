@@ -12,6 +12,8 @@
   monitoring.
 - Hardened TB3 bringup discovery and Xorg/Openbox/Epiphany lifecycle while
   preserving `dry_run=true` as the default.
+- Froze the 14-row P4 demo matrix, added dry-run execution and summarization,
+  and hardened Japanese move-then-observe plus autonomous-navigation boundaries.
 - Added repository audit, validation, CI, hardware, limitations, and release
   documentation.
 

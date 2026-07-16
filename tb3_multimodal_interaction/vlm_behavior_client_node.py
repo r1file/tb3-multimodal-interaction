@@ -1918,6 +1918,18 @@ def make_policy_override_plan(text, trace_id, language):
             },
             face="thinking",
         )
+    if is_autonomous_navigation_request(text):
+        return make_policy_guard_plan(
+            trace_id,
+            language,
+            "autonomous_navigation_limit",
+            {
+                "zh": "我现在不能执行自主导航或建图。",
+                "ja": "自律ナビゲーションや地図作成はまだできません。",
+                "en": "I cannot perform autonomous navigation or mapping here.",
+            },
+            face="thinking",
+        )
     if is_mixed_motion_visual_request(text):
         return make_policy_guard_plan(
             trace_id,
@@ -2087,7 +2099,43 @@ def is_mixed_motion_visual_request(text):
         "何が見えた",
         "見て答",
     )
-    return any(pattern in value for pattern in visual_after_motion_patterns)
+    if any(pattern in value for pattern in visual_after_motion_patterns):
+        return True
+    japanese_motion_then = (
+        "動いてから",
+        "移動してから",
+        "曲がってから",
+        "進んでから",
+        "回ってから",
+    )
+    japanese_observation = ("見て", "画像", "何がある", "何が見える", "答えて")
+    return any(pattern in value for pattern in japanese_motion_then) and any(
+        pattern in value for pattern in japanese_observation
+    )
+
+
+def is_autonomous_navigation_request(text):
+    return has_any_pattern(
+        text,
+        (
+            "autonomous navigation",
+            "navigate autonomously",
+            "build a map",
+            "create a map",
+            "mapping",
+            "slam",
+            "自主导航",
+            "自主導航",
+            "自动导航",
+            "自動導航",
+            "建图",
+            "建圖",
+            "自律ナビゲーション",
+            "自律走行",
+            "地図を作",
+            "地図作成",
+        ),
+    )
 
 
 def is_user_holding_question(text):
