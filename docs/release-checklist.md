@@ -34,7 +34,8 @@ safety gates are complete.
 
 ## Publication
 
-- [ ] Pre-demo candidate is committed, pushed, and reviewed through a draft PR.
+- [x] Pre-demo candidate is committed, pushed, and available for review through
+  a draft PR.
 - [ ] Runtime hosts are updated to the reviewed commit after merge.
 - [ ] Final release notes identify external models/assets and known limitations.
 - [ ] Tag and GitHub release are created only after all open demo gates pass.

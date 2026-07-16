@@ -49,3 +49,6 @@ This candidate is ready for code review and clean-checkout reproduction. It is
 not a final release: no release tag should be created until the P4 demo matrix,
 three clean-start sequences, physical visual/OCR checks, and any explicitly
 authorized real-motion row have passed.
+
+Draft PR: https://github.com/r1file/tb3-multimodal-interaction/pull/1. The
+repository-validation GitHub Actions check passed on the published candidate.
