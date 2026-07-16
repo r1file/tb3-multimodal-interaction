@@ -18,6 +18,7 @@ class TtsTopicAdapter(Node):
         self.declare_parameter('request_topic', '/robot_tts/request')
         self.declare_parameter('status_topic', '/robot_tts/status')
         self.declare_parameter('audio_topic', '/robot_speech/wav')
+        self.declare_parameter('audio_metadata_topic', '/robot_speech/metadata')
         self.declare_parameter('default_language', 'ja')
         self.declare_parameter('ja_voice', 'jf_alpha')
         self.declare_parameter('zh_voice', 'zf_xiaoxiao')
@@ -27,6 +28,7 @@ class TtsTopicAdapter(Node):
         request_topic = str(self.get_parameter('request_topic').value)
         status_topic = str(self.get_parameter('status_topic').value)
         audio_topic = str(self.get_parameter('audio_topic').value)
+        audio_metadata_topic = str(self.get_parameter('audio_metadata_topic').value)
 
         self.default_language = str(self.get_parameter('default_language').value)
         self.sample_rate = int(self.get_parameter('sample_rate').value)
@@ -37,6 +39,7 @@ class TtsTopicAdapter(Node):
         }
 
         self.audio_pub = self.create_publisher(UInt8MultiArray, audio_topic, 10)
+        self.audio_metadata_pub = self.create_publisher(String, audio_metadata_topic, 10)
         self.status_pub = self.create_publisher(String, status_topic, 10)
         self.create_subscription(String, request_topic, self.on_request, 10)
 
@@ -112,6 +115,18 @@ class TtsTopicAdapter(Node):
         started = time.perf_counter()
         wav_path = ''
         try:
+            metadata_msg = String()
+            metadata_msg.data = json.dumps(
+                {
+                    **metadata,
+                    'language': language,
+                    'text': text,
+                    'time': time.time(),
+                },
+                ensure_ascii=False,
+                separators=(',', ':'),
+            )
+            self.audio_metadata_pub.publish(metadata_msg)
             self.publish_status(True, 'synthesizing', language, text, '', 0, 0, '', metadata=metadata)
             wav_path = str(self.synthesize(text, language, metadata))
             audio = Path(wav_path).read_bytes()

@@ -86,6 +86,14 @@ def has_stop_only_motion(node):
     return bool(motion_lines) and all('"action":"stop"' in raw for raw in motion_lines)
 
 
+def has_tts_state(node, state):
+    return any(f'"state":"{state}"' in raw for raw in node.tts)
+
+
+def has_speech_state(node, state):
+    return any(raw.startswith(f"{state} ") for raw in node.speech)
+
+
 rclpy.init()
 node = HardwareSmokeNode()
 try:
@@ -98,6 +106,7 @@ try:
         "validated": True,
         "fallback_used": False,
         "reply": "No-motion hardware smoke. I will stay here.",
+        "reply_language": "en",
         "emotion": "neutral",
         "tts_style": "calm",
         "face": "thinking",
@@ -119,10 +128,11 @@ try:
     if not spin_until(node, lambda: len(node.face) > 0, 5.0):
         raise RuntimeError("no /robot_face/status observed")
 
-    if not spin_until(node, lambda: len(node.tts) > 0, 25.0):
-        raise RuntimeError("no /robot_tts/status observed")
+    if not spin_until(node, lambda: has_tts_state(node, "done"), 60.0):
+        raise RuntimeError("no /robot_tts/status state=done observed")
 
-    spin_until(node, lambda: len(node.speech) > 0, 8.0)
+    if not spin_until(node, lambda: has_speech_state(node, "done"), 20.0):
+        raise RuntimeError("no /robot_speech/status done observed")
     print(
         "BEHAVIOR_NO_MOTION_HARDWARE_SMOKE_PASS "
         f"behavior={len(node.behavior)} tts={len(node.tts)} "

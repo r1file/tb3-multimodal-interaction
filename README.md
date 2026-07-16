@@ -10,21 +10,43 @@ The repository root is the ROS 2 package `tb3_multimodal_interaction`. Clone it
 directly into `workspace/ros2_ws/src/tb3_multimodal_interaction` on the Server PC
 and TurtleBot3. On AI Max it may be cloned anywhere under `/home/user/ROS_Cui`.
 
+The current branch is a **pre-demo release candidate**: platform lifecycle,
+diagnostics, evaluation logging, and dashboards are implemented and verified;
+the curated physical demo acceptance remains a separate P4/Week8 gate. Real
+motion is disabled by default.
+
 ## Quick start
 
-1. Copy `.env.example` to `.env` and review host paths.
-2. Install role-specific runtime configuration:
-   - Server PC: `bash deploy/server_pc/install.sh`
-   - TurtleBot3: `bash deploy/tb3/install.sh`
-3. Start roles in order:
-   - AI Max: `bash deploy/ai_max/start.sh`
-   - Server PC: `bash deploy/server_pc/start.sh`
-   - TurtleBot3: `bash deploy/tb3/start.sh`
-4. Verify from the TB3 checkout: `bash scripts/health_check_full.sh full` inside
-   the `turtlebot3` container.
+1. Follow the [fresh-host reproduction guide](docs/reproduction.md), including
+   prerequisites and external model assets.
+2. Copy `.env.example` to `.env` and review every role-specific path and address.
+3. Run `bash deploy/preflight.sh <role> --phase install` and fix every failure.
+4. Install role-specific runtime configuration with
+   `bash deploy/role.sh <role> install`.
+5. Start roles in order:
+   - AI Max: `bash deploy/role.sh ai_max start`
+   - Server PC: `bash deploy/role.sh server_pc start`
+   - TurtleBot3: `bash deploy/role.sh tb3 start`
+6. After each start, run the matching `--phase runtime` preflight. Verify the
+   full stack from TB3 with `bash scripts/health_check_full.sh full` inside the
+   `turtlebot3` container.
+
+To start only the TB3 display path (`face_display_node` on port 8765, Xorg,
+Openbox, and Epiphany) without the remaining device or behavior nodes, run on
+the TB3 host:
+
+```bash
+bash scripts/start_tb3_display_only_host.sh
+```
+
+Before publishing a change, run `bash scripts/validate_repository.sh`. In a ROS
+Jazzy environment this executes the complete test suite; outside ROS it runs
+the repository-safe subset plus syntax, asset, size, and credential checks.
 
 Real motion is disabled by default. Set `TB3_BEHAVIOR_DRY_RUN=false` only after
-clearing the floor and confirming emergency-stop access.
+clearing the floor and confirming emergency-stop access. See the
+[hardware contract](docs/hardware.md) and [known limitations](docs/limitations.md).
 
-See [deployment](docs/deployment.md), [migration map](docs/migration-map.md),
-[inventory](docs/inventory.md), and [rollback](docs/rollback.md).
+The [documentation index](docs/README.md) separates current operator material,
+research/evaluation evidence, and historical migration records. Release gates
+are tracked in the [Week8 release checklist](docs/release-checklist.md).

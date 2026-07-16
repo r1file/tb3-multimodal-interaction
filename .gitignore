@@ -6,10 +6,19 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+node_modules/
+.idea/
+.vscode/
 
 build/
 install/
 log/
+dist/
+*.egg-info/
 
 *.log
 *.pid
@@ -20,6 +29,21 @@ log/
 *.jsonl
 *.csv
 *.gguf
+*.safetensors
+*.onnx
+*.pt
+*.bin
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.p12
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+id_rsa*
+id_ed25519*
 
 model_cache/
 vlm_server_logs/

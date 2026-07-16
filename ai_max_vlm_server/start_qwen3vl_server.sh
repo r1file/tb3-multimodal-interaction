@@ -8,15 +8,17 @@ CTX_SIZE="${CTX_SIZE:-4096}"
 GPU_LAYERS="${GPU_LAYERS:-999}"
 ROOT="${ROOT:-/home/user/ROS_Cui}"
 LLAMA_SERVER="${LLAMA_SERVER:-$ROOT/llama.cpp/build/bin/llama-server}"
+MODEL_PATH="${MODEL_PATH:-}"
+MMPROJ_PATH="${MMPROJ_PATH:-}"
 
 case "$MODEL" in
   qwen3vl2b)
-    MODEL_PATH="/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-2B-Instruct-GGUF/snapshots/52d6c8ffea26cc873ac5ad116f8631268d7eb503/Qwen3VL-2B-Instruct-Q4_K_M.gguf"
-    MMPROJ_PATH="/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-2B-Instruct-GGUF/snapshots/52d6c8ffea26cc873ac5ad116f8631268d7eb503/mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf"
+    MODEL_PATH="${MODEL_PATH:-/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-2B-Instruct-GGUF/snapshots/52d6c8ffea26cc873ac5ad116f8631268d7eb503/Qwen3VL-2B-Instruct-Q4_K_M.gguf}"
+    MMPROJ_PATH="${MMPROJ_PATH:-/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-2B-Instruct-GGUF/snapshots/52d6c8ffea26cc873ac5ad116f8631268d7eb503/mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf}"
     ;;
   qwen3vl8b)
-    MODEL_PATH="/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-8B-Instruct-GGUF/snapshots/f982a07559d4a2f6c8744d840bf6fccab30eea96/Qwen3VL-8B-Instruct-Q4_K_M.gguf"
-    MMPROJ_PATH="/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-8B-Instruct-GGUF/snapshots/f982a07559d4a2f6c8744d840bf6fccab30eea96/mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf"
+    MODEL_PATH="${MODEL_PATH:-/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-8B-Instruct-GGUF/snapshots/f982a07559d4a2f6c8744d840bf6fccab30eea96/Qwen3VL-8B-Instruct-Q4_K_M.gguf}"
+    MMPROJ_PATH="${MMPROJ_PATH:-/home/user/.cache/huggingface/hub/models--Qwen--Qwen3-VL-8B-Instruct-GGUF/snapshots/f982a07559d4a2f6c8744d840bf6fccab30eea96/mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf}"
     ;;
   *)
     echo "Unknown MODEL: $MODEL" >&2

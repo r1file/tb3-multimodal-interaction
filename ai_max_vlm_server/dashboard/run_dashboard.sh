@@ -15,6 +15,7 @@ docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d \
   --name "$NAME" \
   --restart unless-stopped \
+  --pid host \
   --add-host=host.docker.internal:host-gateway \
   -p "$PORT:18181" \
   -e DASHBOARD_PORT=18181 \

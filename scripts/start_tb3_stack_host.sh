@@ -2,137 +2,89 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-URL="${1:-http://127.0.0.1:8765}"
+TB3_UI_PORT="${TB3_UI_PORT:-8765}"
+TB3_CAMERA_DEVICE="${TB3_CAMERA_DEVICE:-/dev/video0}"
+TB3_MIC_ALSA_DEVICE="${TB3_MIC_ALSA_DEVICE:-plughw:CARD=Device,DEV=0}"
+TB3_SPEAKER_ALSA_DEVICE="${TB3_SPEAKER_ALSA_DEVICE:-plughw:CARD=UACDemoV10,DEV=0}"
+RUNTIME_LOG_DIR="${CONTAINER_RUNTIME_LOG_DIR:-/workspace/runtime_logs/tb3_multimodal_interaction}"
+RETENTION_DAYS="${RUNTIME_LOG_RETENTION_DAYS:-14}"
+RETAIN_FILES="${RUNTIME_LOG_RETAIN_FILES:-20}"
+BRINGUP_LOG="$RUNTIME_LOG_DIR/tb3_bringup.log"
+DEVICE_LOG="$RUNTIME_LOG_DIR/device_stack.log"
+BRINGUP_WAIT_S="${TB3_BRINGUP_WAIT_S:-45}"
+URL="${1:-http://127.0.0.1:$TB3_UI_PORT}"
 
 if ! docker ps --format '{{.Names}}' | grep -qx turtlebot3; then
   echo "Error: turtlebot3 container is not running." >&2
-  echo "Start it first: cd ~/turtlebot3/docker/jazzy && ./container.sh start" >&2
   exit 1
 fi
 
 echo "Stopping existing TB3 device-stack processes..."
-set +e
-docker exec -i turtlebot3 python3 - <<'PY'
-import os
-import signal
-import subprocess
-import time
+docker exec turtlebot3 python3 \
+  /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/stop_matching_processes.py \
+  device_stack.launch.py start_device_stack.sh motion_controller_node \
+  expression_behavior_node face_display_node camera_capture_node mic_capture_node speech_player_node
+docker exec turtlebot3 bash \
+  /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/prepare_runtime_log.sh \
+  "$DEVICE_LOG" "$RETENTION_DAYS" "$RETAIN_FILES"
 
-PATTERNS = (
-    'device_stack.launch.py',
-    'start_device_stack.sh',
-    'motion_controller_node',
-    'expression_behavior_node',
-    'face_display_node',
-    'camera_capture_node',
-    'mic_capture_node',
-    'speech_player_node',
-)
-
-
-def matching_pids():
-    protected_pids = {os.getpid(), os.getppid()}
-    output = subprocess.check_output(['ps', '-eo', 'pid,args'], text=True)
-    pids = []
-    for line in output.splitlines()[1:]:
-        line = line.strip()
-        if not line:
-            continue
-        pid_text, _, args = line.partition(' ')
-        try:
-            pid = int(pid_text)
-        except ValueError:
-            continue
-        if pid in protected_pids:
-            continue
-        if any(pattern in args for pattern in PATTERNS):
-            pids.append(pid)
-    return pids
-
-
-for sig in (signal.SIGTERM, signal.SIGKILL):
-    pids = matching_pids()
-    if pids:
-        print(f'Sending {sig.name} to device-stack PIDs: {pids}', flush=True)
-    for pid in pids:
-        try:
-            os.kill(pid, sig)
-        except ProcessLookupError:
-            pass
-    time.sleep(1.0)
-PY
-cleanup_status=$?
-set -e
-if [ "$cleanup_status" -ne 0 ]; then
-  echo "Warning: device-stack cleanup exited with status $cleanup_status; continuing startup." >&2
+bringup_running=0
+if docker exec turtlebot3 bash -lc \
+  "pgrep -af '[r]os2 launch turtlebot3_bringup robot.launch.py|[t]urtlebot3_ros' >/dev/null"; then
+  bringup_running=1
 fi
 
-sleep 0.5
+if [ "$bringup_running" -eq 0 ]; then
+  echo "No TB3 bringup process found; starting one owned instance."
+  docker exec turtlebot3 bash \
+    /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/prepare_runtime_log.sh \
+    "$BRINGUP_LOG" "$RETENTION_DAYS" "$RETAIN_FILES"
+  docker exec -d turtlebot3 bash -lc \
+    "exec bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/start_tb3_bringup.sh >'$BRINGUP_LOG' 2>&1"
+else
+  echo "Existing TB3 bringup process found; preserving it and its active log."
+fi
 
-if ! docker exec turtlebot3 bash -lc '
-    if grep -Eq "turtlebot3_node.*Run!|diff_drive_controller.*Run!" /tmp/tb3_bringup.log 2>/dev/null; then
-      echo "TB3 bringup log Run! found."
-      exit 0
-    fi
-    echo "TB3 bringup log Run! not found; checking ROS topics instead..."
-    bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/wait_tb3_bringup_ready.sh 8
-  '; then
-  echo "Error: TB3 bringup Run! was not found." >&2
-  echo "Start TB3 bringup first, then rerun this script." >&2
-  echo "Preferred command:" >&2
-  echo "  docker exec -d turtlebot3 bash -lc 'bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/start_tb3_bringup.sh >/tmp/tb3_bringup.log 2>&1'" >&2
-  echo "If bringup was started manually, make sure /cmd_vel has a subscriber and /odom has a publisher." >&2
+echo "Waiting up to ${BRINGUP_WAIT_S}s for TB3 bringup readiness..."
+if ! docker exec \
+  -e TB3_BRINGUP_LOG="$BRINGUP_LOG" \
+  turtlebot3 bash -lc \
+  "bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/wait_tb3_bringup_ready.sh '$BRINGUP_WAIT_S'"; then
+  echo "Error: TB3 bringup is not ready. Log: $BRINGUP_LOG inside turtlebot3" >&2
+  docker exec turtlebot3 tail -n 120 "$BRINGUP_LOG" >&2 || true
   exit 1
 fi
 
-echo "TB3 bringup Run! found; starting device/UI layer."
-
-docker exec -d turtlebot3 bash -lc \
-  'bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/start_device_stack.sh >/tmp/device_stack.log 2>&1'
+docker exec -d \
+  -e TB3_UI_PORT="$TB3_UI_PORT" \
+  -e TB3_CAMERA_DEVICE="$TB3_CAMERA_DEVICE" \
+  -e TB3_MIC_ALSA_DEVICE="$TB3_MIC_ALSA_DEVICE" \
+  -e TB3_SPEAKER_ALSA_DEVICE="$TB3_SPEAKER_ALSA_DEVICE" \
+  turtlebot3 bash -lc \
+  "bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/start_device_stack.sh >'$DEVICE_LOG' 2>&1"
 
 echo "Waiting for TB3 device-stack discovery..."
-if ! docker exec turtlebot3 bash -lc '
+if ! docker exec -e TB3_UI_PORT="$TB3_UI_PORT" turtlebot3 bash -lc '
     set +u
     source /opt/ros/jazzy/setup.bash
     source /workspace/ros2_ws/install/setup.bash
     source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
     set -u
-
-    required_nodes=(
-      /camera_capture_node
-      /expression_behavior_node
-      /face_display_node
-      /mic_capture_node
-      /motion_controller_node
-      /speech_player_node
-    )
-
+    required_nodes=(/camera_capture_node /expression_behavior_node /face_display_node /mic_capture_node /motion_controller_node /speech_player_node)
     ready=0
     for _ in $(seq 1 30); do
       nodes="$(timeout 4s ros2 node list 2>/dev/null || true)"
       ready=1
       for node in "${required_nodes[@]}"; do
-        if ! grep -qx "$node" <<<"$nodes"; then
-          ready=0
-          break
-        fi
+        grep -qx "$node" <<<"$nodes" || { ready=0; break; }
       done
-      if [ "$ready" -eq 1 ]; then
-        break
-      fi
+      [ "$ready" -eq 1 ] && break
       sleep 1
     done
-    if [ "$ready" -ne 1 ]; then
-      echo "Timed out waiting for TB3 device-stack nodes." >&2
-      exit 1
-    fi
-
-    echo "TB3 device-stack nodes discovered; running full health check."
-    ROS_TOPIC_RETRY_S=6 \
-      bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/health_check_full.sh tb3
+    [ "$ready" -eq 1 ] || exit 1
+    ROS_TOPIC_RETRY_S=6 bash /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/health_check_full.sh tb3
   '; then
-  echo "Error: TB3 device-stack health check failed." >&2
-  echo "Executor log: /tmp/device_stack.log inside the turtlebot3 container" >&2
+  echo "Error: TB3 device-stack health check failed. Log: $DEVICE_LOG inside turtlebot3" >&2
   exit 1
 fi
 

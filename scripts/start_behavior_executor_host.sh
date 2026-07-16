@@ -2,9 +2,19 @@
 set -euo pipefail
 
 CONTAINER="${CONTAINER:-turtlebot3}"
-DRY_RUN="${TB3_BEHAVIOR_DRY_RUN:-false}"
-LOG_PATH="${LOG_PATH:-/tmp/behavior_executor.log}"
-PID_PATH="${PID_PATH:-/tmp/behavior_executor.pid}"
+DRY_RUN="${TB3_BEHAVIOR_DRY_RUN:-true}"
+RUNTIME_LOG_DIR="${CONTAINER_RUNTIME_LOG_DIR:-/workspace/runtime_logs/tb3_multimodal_interaction}"
+LOG_PATH="${LOG_PATH:-$RUNTIME_LOG_DIR/behavior_executor.log}"
+PID_PATH="${PID_PATH:-$RUNTIME_LOG_DIR/behavior_executor.pid}"
+RETENTION_DAYS="${RUNTIME_LOG_RETENTION_DAYS:-14}"
+RETAIN_FILES="${RUNTIME_LOG_RETAIN_FILES:-20}"
+
+docker exec "$CONTAINER" python3 \
+  /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/stop_matching_processes.py \
+  behavior_executor_node
+docker exec "$CONTAINER" bash \
+  /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/prepare_runtime_log.sh \
+  "$LOG_PATH" "$RETENTION_DAYS" "$RETAIN_FILES"
 
 docker exec "$CONTAINER" bash -lc "
 set -euo pipefail
@@ -13,15 +23,7 @@ source /opt/ros/jazzy/setup.bash
 source /workspace/ros2_ws/install/setup.bash
 source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
 set -u
-if [ -s '$PID_PATH' ]; then
-  old_pid=\$(cat '$PID_PATH' || true)
-  if [ -n \"\$old_pid\" ]; then
-    kill \"\$old_pid\" >/dev/null 2>&1 || true
-    sleep 0.5
-  fi
-fi
-ps -eo pid,args | awk '/behavior_executor_node/ && !/bash -lc/ && !/awk/ {print \$1}' | xargs -r kill >/dev/null 2>&1 || true
-sleep 0.5
+mkdir -p '$(dirname "$PID_PATH")'
 nohup ros2 run tb3_multimodal_interaction behavior_executor_node --ros-args \
   -p dry_run:='$DRY_RUN' \
   >'$LOG_PATH' 2>&1 </dev/null &

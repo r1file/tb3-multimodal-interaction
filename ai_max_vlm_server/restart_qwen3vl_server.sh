@@ -8,6 +8,11 @@ CTX_SIZE="${CTX_SIZE:-4096}"
 GPU_LAYERS="${GPU_LAYERS:-999}"
 ROOT="${ROOT:-/home/user/ROS_Cui}"
 WAIT_TIMEOUT_S="${WAIT_TIMEOUT_S:-180}"
+LLAMA_SERVER="${LLAMA_SERVER:-$ROOT/llama.cpp/build/bin/llama-server}"
+MODEL_PATH="${MODEL_PATH:-}"
+MMPROJ_PATH="${MMPROJ_PATH:-}"
+RETENTION_DAYS="${RUNTIME_LOG_RETENTION_DAYS:-14}"
+RETAIN_FILES="${RUNTIME_LOG_RETAIN_FILES:-20}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 START_SCRIPT="$SCRIPT_DIR/start_qwen3vl_server.sh"
@@ -21,6 +26,9 @@ if [[ ! -x "$START_SCRIPT" && ! -f "$START_SCRIPT" ]]; then
 fi
 
 mkdir -p "$LOG_DIR"
+find "$LOG_DIR" -maxdepth 1 -type f -name '*.log' -mtime "+$RETENTION_DAYS" -delete 2>/dev/null || true
+find "$LOG_DIR" -maxdepth 1 -type f -name '*.log' -print 2>/dev/null \
+  | sort -r | tail -n "+$((RETAIN_FILES + 1))" | xargs -r rm -f --
 
 echo "Restarting $MODEL on $HOST:$PORT"
 echo "Stopping existing llama-server processes for port $PORT..."
@@ -72,6 +80,9 @@ nohup env \
   CTX_SIZE="$CTX_SIZE" \
   GPU_LAYERS="$GPU_LAYERS" \
   ROOT="$ROOT" \
+  LLAMA_SERVER="$LLAMA_SERVER" \
+  MODEL_PATH="$MODEL_PATH" \
+  MMPROJ_PATH="$MMPROJ_PATH" \
   bash "$START_SCRIPT" >"$WRAPPER_LOG" 2>&1 &
 NEW_PID="$!"
 echo "$NEW_PID" > "$PID_PATH"

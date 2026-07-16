@@ -4,6 +4,7 @@ import threading
 import time
 from urllib import request as urlrequest
 from urllib.parse import parse_qs
+from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
@@ -402,6 +403,10 @@ refresh();
 </html>
 """
 
+# Presentation is kept as a package asset so the dashboard can be tested as a
+# normal page while the ROS node remains focused on state collection.
+HTML = Path(__file__).with_name('web').joinpath('server_control.html').read_text(encoding='utf-8')
+
 
 class ReusableThreadingHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = True
@@ -421,6 +426,7 @@ class ServerControl(Node):
         'expression_behavior_node',
         'behavior_executor_node',
         'vlm_behavior_client_node',
+        'evaluation_logger_node',
     ]
 
     MONITORED_TOPICS = [
@@ -439,6 +445,8 @@ class ServerControl(Node):
         '/robot_expression/status',
         '/robot_ai/response_request',
         '/robot_ai/status',
+        '/robot_ai/input_inspector',
+        '/robot_evaluation/status',
         '/robot_behavior/plan',
         '/robot_behavior/status',
         '/robot_motion/action_cmd',
@@ -451,7 +459,7 @@ class ServerControl(Node):
         ('turtlebot3', ['mic_capture_node', 'camera_capture_node', 'speech_player_node']),
         ('tb3_asr', ['asr_topic_adapter_node']),
         ('tb3_tts', ['tts_topic_adapter_node']),
-        ('server_ui', ['server_control_node', 'av_recorder_node']),
+        ('server_ui', ['server_control_node', 'av_recorder_node', 'evaluation_logger_node']),
         ('vlm', ['vlm_behavior_client_node']),
         ('behavior', ['behavior_executor_node']),
     ]
@@ -480,6 +488,8 @@ class ServerControl(Node):
         self.create_subscription(String, '/robot_tts/status', self.on_tts_status, 10)
         self.create_subscription(String, '/robot_speech/status', self.on_speech_status, 10)
         self.create_subscription(String, '/robot_ai/status', self.on_ai_status, 10)
+        self.create_subscription(String, '/robot_ai/input_inspector', self.on_input_inspector, 10)
+        self.create_subscription(String, '/robot_evaluation/status', self.on_evaluation_status, 10)
         self._lock = threading.Lock()
         self._av_status = 'none'
         self._expression_status = 'none'
@@ -489,10 +499,13 @@ class ServerControl(Node):
         self._tts_status = 'none'
         self._speech_status = 'none'
         self._ai_status = 'none'
+        self._input_inspector = 'none'
+        self._evaluation_status = 'none'
         self._node_last_seen = {}
         self._last_node_monitor_error = ''
         self._last_node_monitor_time = 0.0
         self._last_node_count = 0
+        self._started_at = time.time()
         self.server = self.start_server()
         self.get_logger().info(f'Server control UI serving http://localhost:{self.port}/')
 
@@ -611,6 +624,13 @@ class ServerControl(Node):
             return {
                 'time': time.time(),
                 'diagnostics': {
+                    'state_vocabulary': {
+                        'starting': 'inside node discovery grace period',
+                        'stale': 'previously seen but absent inside grace period',
+                        'missing': 'expected node or process is absent',
+                        'unhealthy': 'component responds but violates its health contract',
+                        'unreachable': 'network endpoint cannot be contacted',
+                    },
                     'refresh_latency_ms': int((time.perf_counter() - started) * 1000),
                     'node_monitor_time': self._last_node_monitor_time,
                     'node_count': self._last_node_count,
@@ -628,6 +648,8 @@ class ServerControl(Node):
                 'tts_status': self._tts_status,
                 'speech_status': self._speech_status,
                 'ai_status': self._ai_status,
+                'input_inspector': self._input_inspector,
+                'evaluation_status': self._evaluation_status,
                 'services': services,
                 'nodes': nodes,
                 'topic_monitor': topic_monitor,
@@ -651,9 +673,13 @@ class ServerControl(Node):
             present = set()
             self._last_node_monitor_error = f'{type(exc).__name__}: {exc}'
         rows = []
-        for name in self.EXPECTED_NODES:
+        monitored_names = sorted(set(self.EXPECTED_NODES) | present)
+        for name in monitored_names:
             if name in present:
                 rows.append({'name': name, 'ok': True, 'state': 'ok', 'last_seen': now, 'meta': 'ok'})
+                continue
+            if not self._node_last_seen.get(name) and now - self._started_at <= self.node_monitor_grace_sec:
+                rows.append({'name': name, 'ok': False, 'state': 'starting', 'last_seen': 0.0, 'meta': 'starting'})
                 continue
             age = now - self._node_last_seen.get(name, 0.0)
             if age <= self.node_monitor_grace_sec:
@@ -679,16 +705,19 @@ class ServerControl(Node):
         return rows
 
     def service_monitor(self, nodes):
-        node_state = {item['name']: item['ok'] for item in nodes}
         output = []
         for name, required in self.SERVICES:
-            missing = [node for node in required if not node_state.get(node)]
+            required_states = [next((item['state'] for item in nodes if item['name'] == node), 'missing') for node in required]
+            affected = [node for node, node_status in zip(required, required_states) if node_status != 'ok']
+            state = 'ok'
+            if affected:
+                state = 'starting' if 'starting' in required_states else 'stale' if 'stale' in required_states else 'missing'
             output.append(
                 {
                     'name': name,
-                    'ok': not missing,
-                    'state': 'ok' if not missing else 'missing',
-                    'meta': 'ok' if not missing else 'missing ' + ', '.join(missing),
+                    'ok': state == 'ok',
+                    'state': state,
+                    'meta': 'ok' if not affected else state + ' ' + ', '.join(affected),
                 }
             )
         return output
@@ -713,6 +742,7 @@ class ServerControl(Node):
                 payload = json.loads(response.read().decode('utf-8'))
             return {
                 'ok': True,
+                'status': 'ready',
                 'url': self.face_state_url,
                 'latency_ms': int((time.perf_counter() - started) * 1000),
                 'state': payload,
@@ -720,6 +750,7 @@ class ServerControl(Node):
         except Exception as exc:
             return {
                 'ok': False,
+                'status': 'unreachable',
                 'url': self.face_state_url,
                 'latency_ms': int((time.perf_counter() - started) * 1000),
                 'error': str(exc),
@@ -743,7 +774,7 @@ class ServerControl(Node):
 
     def on_asr_status(self, msg):
         with self._lock:
-            self._asr_status = msg.data[-240:]
+            self._asr_status = msg.data[-4000:]
 
     def on_tts_status(self, msg):
         with self._lock:
@@ -755,7 +786,15 @@ class ServerControl(Node):
 
     def on_speech_status(self, msg):
         with self._lock:
-            self._speech_status = msg.data[-240:]
+            self._speech_status = msg.data[-4000:]
+
+    def on_input_inspector(self, msg):
+        with self._lock:
+            self._input_inspector = msg.data
+
+    def on_evaluation_status(self, msg):
+        with self._lock:
+            self._evaluation_status = msg.data
 
     def publish_string(self, publisher, value):
         msg = String()
@@ -789,6 +828,9 @@ class ServerControl(Node):
             'include_asr': not bool(text.strip()),
             'include_camera': True,
             'time': time.time(),
+            # Server UI and VLM client run on the same Server PC kernel, so this
+            # monotonic value includes HTTP/ROS ingress without wall-clock math.
+            'request_monotonic_s': time.monotonic(),
         }
         if str(context_session or '').strip():
             payload['context_session'] = str(context_session).strip()

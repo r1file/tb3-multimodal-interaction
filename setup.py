@@ -10,6 +10,7 @@ setup(
     name=package_name,
     version='0.2.0',
     packages=find_packages(exclude=['test']),
+    package_data={'tb3_multimodal_interaction': ['web/*.html']},
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
@@ -38,6 +39,7 @@ setup(
             'server_control_node = tb3_multimodal_interaction.server_control_node:main',
             'behavior_executor_node = tb3_multimodal_interaction.behavior_executor_node:main',
             'vlm_behavior_client_node = tb3_multimodal_interaction.vlm_behavior_client_node:main',
+            'evaluation_logger_node = tb3_multimodal_interaction.evaluation_logger_node:main',
             'io_test_sequence = tb3_multimodal_interaction.io_test_sequence:main',
         ],
     },

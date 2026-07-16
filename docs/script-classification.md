@@ -31,3 +31,15 @@ accepted. The clean repository contains only the functional names below.
 
 Delete candidates after acceptance: old host copies of renamed scripts,
 `__pycache__`, `.pyc`, `.DS_Store`, stale PID files, and temporary logs.
+
+## Current entrypoint policy
+
+- `deploy/role.sh` is the only normal install/start/stop/restart/status entry.
+- `deploy/<role>/*.sh` and `scripts/start_*` are owned implementation helpers;
+  do not mix them with the canonical role command during normal operation.
+- `scripts/smoke_*`, `scripts/health_check_full.sh`, and
+  `scripts/validate_repository.sh` are repeatable verification tools.
+- `tools/analysis/` and the two legacy-data conversion scripts are offline
+  analysis tools. They never start a role or overwrite raw evidence.
+- Old stage-numbered runtime scripts are not shipped in the repository. Their
+  names remain only in migration and rollback documentation.
