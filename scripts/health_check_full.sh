@@ -6,6 +6,7 @@ source /workspace/ros2_ws/install/setup.bash
 source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
 
 MODE="${1:-full}"
+TB3_UI_PORT="${TB3_UI_PORT:-8765}"
 TOPIC_TIMEOUT_S="${ROS_TOPIC_TIMEOUT_S:-4}"
 TOPIC_RETRY_S="${ROS_TOPIC_RETRY_S:-12}"
 FAIL=0
@@ -104,10 +105,10 @@ if [ "$MODE" = "full" ]; then
   require_pub /robot_asr/status
 fi
 
-if curl -fsS --max-time 1 http://127.0.0.1:8765/state.json >/dev/null 2>&1; then
-  echo "ok tb3_face_ui http://127.0.0.1:8765/state.json"
+if curl -fsS --max-time 1 "http://127.0.0.1:$TB3_UI_PORT/state.json" >/dev/null 2>&1; then
+  echo "ok tb3_face_ui http://127.0.0.1:$TB3_UI_PORT/state.json"
 else
-  echo "missing tb3_face_ui http://127.0.0.1:8765/state.json"
+  echo "missing tb3_face_ui http://127.0.0.1:$TB3_UI_PORT/state.json"
   FAIL=1
 fi
 

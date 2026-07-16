@@ -21,6 +21,9 @@ SERVER_STATUS_URL = os.environ.get(
 LOG_DIR = Path(os.environ.get("LLAMA_LOG_DIR", "/logs"))
 TAIL_LINES = int(os.environ.get("TAIL_LINES", "80"))
 LAST_RELAY_STATUS = {"time": 0.0, "data": None}
+STARTED_AT = time.time()
+STARTUP_GRACE_S = float(os.environ.get("STARTUP_GRACE_S", "180"))
+STALE_AFTER_S = float(os.environ.get("STALE_AFTER_S", "30"))
 
 
 def fetch_json(url, timeout=1.5):
@@ -98,6 +101,20 @@ def list_llama_processes():
     return rows
 
 
+def fetch_state(fetch, payload=None):
+    if fetch.get("ok"):
+        timestamp = payload.get("time") if isinstance(payload, dict) else None
+        if isinstance(timestamp, (int, float)) and time.time() - timestamp > STALE_AFTER_S:
+            return "stale"
+        return "ready"
+    error = fetch.get("error", "").lower()
+    if time.time() - STARTED_AT <= STARTUP_GRACE_S:
+        return "starting"
+    if "http error" in error:
+        return "unhealthy"
+    return "unreachable"
+
+
 def collect_status():
     health = fetch_json(f"{LLAMA_BASE_URL}/health")
     models = fetch_json(f"{LLAMA_BASE_URL}/v1/models")
@@ -113,13 +130,33 @@ def collect_status():
             "data": server_data,
             "error": f"using relay updated {int(time.time() - LAST_RELAY_STATUS['time'])}s ago",
         }
+    relay_age_s = int(time.time() - LAST_RELAY_STATUS["time"]) if LAST_RELAY_STATUS.get("data") else None
+    server_state = fetch_state(server_status, server_data)
+    if server_source == "relay" and relay_age_s is not None and relay_age_s > STALE_AFTER_S:
+        server_state = "stale"
+    llama_state = fetch_state(health, health.get("data"))
+    if health.get("ok") and not models.get("ok"):
+        llama_state = "unhealthy"
     ai_status = parse_maybe_json(server_data.get("ai_status", ""))
     behavior_status = parse_maybe_json(server_data.get("behavior_status", ""))
     tts_status = parse_maybe_json(server_data.get("tts_status", ""))
     asr_status = parse_maybe_json(server_data.get("asr_status", ""))
+    input_inspector = parse_maybe_json(server_data.get("input_inspector", ""))
+    evaluation_status = parse_maybe_json(server_data.get("evaluation_status", ""))
     latest_log = latest_log_file()
     return {
         "time": time.time(),
+        "diagnostics": {
+            "state_vocabulary": {
+                "starting": "inside startup grace period",
+                "stale": "last usable status is older than the freshness limit",
+                "missing": "an expected process, node, or container is absent",
+                "unhealthy": "component responds but fails its health contract",
+                "unreachable": "network endpoint cannot be contacted",
+            },
+            "startup_grace_s": STARTUP_GRACE_S,
+            "stale_after_s": STALE_AFTER_S,
+        },
         "config": {
             "llama_base_url": LLAMA_BASE_URL,
             "server_status_url": SERVER_STATUS_URL,
@@ -127,6 +164,7 @@ def collect_status():
             "port": PORT,
         },
         "llama": {
+            "state": llama_state,
             "health": health,
             "models": models,
             "processes": list_llama_processes(),
@@ -139,9 +177,8 @@ def collect_status():
                 "status": server_status["status"],
                 "error": server_status["error"],
                 "source": server_source,
-                "relay_age_s": int(time.time() - LAST_RELAY_STATUS["time"])
-                if LAST_RELAY_STATUS.get("data")
-                else None,
+                "relay_age_s": relay_age_s,
+                "state": server_state,
             },
             "diagnostics": server_data.get("diagnostics", {}),
             "services": server_data.get("services", []),
@@ -151,6 +188,8 @@ def collect_status():
             "behavior_status": behavior_status,
             "tts_status": tts_status,
             "speech_status": server_data.get("speech_status", ""),
+            "input_inspector": input_inspector,
+            "evaluation_status": evaluation_status,
         },
     }
 
@@ -223,8 +262,8 @@ async function refresh(){
   const asr = data.server_pc.asr_status || {};
   const timings = ai.timings || {};
   $("config").textContent = data.config.llama_base_url + " / " + data.config.server_status_url;
-  $("health").textContent = data.llama.health.ok ? "ok" : "error";
-  $("health").className = "value " + (data.llama.health.ok ? "ok" : "bad");
+  $("health").textContent = data.llama.state;
+  $("health").className = "value " + (data.llama.state === "ready" ? "ok" : "bad");
   $("models").textContent = modelNames(data.llama.models);
   $("trace").textContent = text(ai.trace_id || behavior.trace_id);
   $("model").textContent = text(ai.model);
@@ -242,8 +281,8 @@ async function refresh(){
   $("context2").textContent = "turns " + text(ai.context_turns) + " / candidates " + text(ai.context_candidates);
   $("motion").textContent = behavior.payload ? text(behavior.payload.action) : "-";
   $("motion2").textContent = behavior.payload ? asJson(behavior.payload) : text(behavior.face);
-  $("server").textContent = data.server_pc.fetch.ok ? "ok" : "error";
-  $("server").className = "value " + (data.server_pc.fetch.ok ? "ok" : "bad");
+  $("server").textContent = data.server_pc.fetch.state;
+  $("server").className = "value " + (data.server_pc.fetch.state === "ready" ? "ok" : "bad");
   $("services").textContent = text(data.server_pc.fetch.source) + " / " + (data.server_pc.services || []).map(s => s.name + ":" + s.state).join("  ");
   $("processes").innerHTML = "<tr><th>PID</th><th>Uptime</th><th>Args</th></tr>" + (data.llama.processes || []).map(p => "<tr><td>"+text(p.pid)+"</td><td>"+text(p.etime)+"</td><td>"+text(p.args || p.error)+"</td></tr>").join("");
   $("logpath").textContent = text(data.llama.latest_log);
@@ -256,6 +295,10 @@ setInterval(refresh, 2000);
 </body>
 </html>
 """
+
+# Keep the UI in a standalone asset so dashboard layout can evolve without
+# mixing presentation code into status collection logic.
+INDEX = (Path(__file__).with_name("index.html")).read_text(encoding="utf-8")
 
 
 class Handler(BaseHTTPRequestHandler):

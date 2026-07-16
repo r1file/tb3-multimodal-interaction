@@ -58,12 +58,19 @@ class AsrTopicAdapter(Node):
     def on_request(self, msg):
         duration = self.default_duration
         language = self.language
+        metadata = {}
         raw = msg.data.strip()
         if raw:
             try:
                 payload = json.loads(raw)
                 duration = float(payload.get('duration', duration))
                 language = str(payload.get('language', language))
+                metadata = {
+                    'request_id': str(payload.get('request_id', '') or ''),
+                    'trace_id': str(payload.get('trace_id', payload.get('request_id', '')) or ''),
+                    'scenario_id': payload.get('scenario_id'),
+                    'trial_id': payload.get('trial_id'),
+                }
             except Exception:
                 try:
                     duration = float(raw)
@@ -72,22 +79,22 @@ class AsrTopicAdapter(Node):
         duration = max(1.0, min(duration, 10.0))
         with self._lock:
             if self._busy:
-                self.publish_status(False, 'busy', language, duration, None, 0, 0, '')
+                self.publish_status(False, 'busy', language, duration, None, 0, 0, '', metadata)
                 return
             self._busy = True
             self._recording = True
             self._audio = bytearray()
             self._started_at = time.time()
-        self.publish_status(True, 'recording', language, duration, None, 0, 0, '')
-        threading.Thread(target=self.finish_after, args=(duration, language), daemon=True).start()
+        self.publish_status(True, 'recording', language, duration, None, 0, 0, '', metadata)
+        threading.Thread(target=self.finish_after, args=(duration, language, metadata), daemon=True).start()
 
-    def finish_after(self, duration, language):
+    def finish_after(self, duration, language, metadata):
         time.sleep(duration)
         with self._lock:
             audio = bytes(self._audio)
             self._recording = False
         if not audio:
-            self.publish_status(False, 'no_audio', language, duration, None, 0, 0, '')
+            self.publish_status(False, 'no_audio', language, duration, None, 0, 0, '', metadata)
             with self._lock:
                 self._busy = False
             return
@@ -95,15 +102,15 @@ class AsrTopicAdapter(Node):
         wav_path = self.write_temp_wav(audio)
         started = time.perf_counter()
         try:
-            text = self.transcribe(wav_path, language)
+            text = self.transcribe(wav_path, language, metadata)
             latency_ms = int((time.perf_counter() - started) * 1000)
             out = String()
             out.data = text
             self.text_pub.publish(out)
-            self.publish_status(True, 'done', language, duration, str(wav_path), len(audio), latency_ms, text)
+            self.publish_status(True, 'done', language, duration, str(wav_path), len(audio), latency_ms, text, metadata)
         except Exception as exc:
             latency_ms = int((time.perf_counter() - started) * 1000)
-            self.publish_status(False, f'{type(exc).__name__}: {exc}', language, duration, str(wav_path), len(audio), latency_ms, '')
+            self.publish_status(False, f'{type(exc).__name__}: {exc}', language, duration, str(wav_path), len(audio), latency_ms, '', metadata)
         finally:
             with self._lock:
                 self._busy = False
@@ -119,14 +126,14 @@ class AsrTopicAdapter(Node):
             wav.writeframes(audio)
         return path
 
-    def load_model(self):
+    def load_model(self, metadata=None):
         if self._model is not None:
             return self._model
         from funasr import AutoModel
 
         default_model_dir = Path.home() / '.cache/modelscope/hub/models/iic/SenseVoiceSmall'
         model_path = str(default_model_dir) if self.model_name == 'auto' and default_model_dir.exists() else self.model_name
-        self.publish_status(True, 'loading_model', self.language, 0.0, model_path, 0, 0, '')
+        self.publish_status(True, 'loading_model', self.language, 0.0, model_path, 0, 0, '', metadata)
         self._model = AutoModel(
             model=model_path,
             trust_remote_code=True,
@@ -136,8 +143,8 @@ class AsrTopicAdapter(Node):
         )
         return self._model
 
-    def transcribe(self, wav_path, language):
-        model = self.load_model()
+    def transcribe(self, wav_path, language, metadata=None):
+        model = self.load_model(metadata)
         result = model.generate(
             input=str(wav_path),
             cache={},
@@ -157,12 +164,17 @@ class AsrTopicAdapter(Node):
             return str(result[0]['text'])
         return json.dumps(result, ensure_ascii=False)
 
-    def publish_status(self, ok, state, language, duration, wav_path, audio_bytes, latency_ms, text):
+    def publish_status(self, ok, state, language, duration, wav_path, audio_bytes, latency_ms, text, metadata=None):
+        metadata = metadata or {}
         msg = String()
         msg.data = json.dumps(
             {
                 'ok': ok,
                 'state': state,
+                'request_id': metadata.get('request_id', ''),
+                'trace_id': metadata.get('trace_id', metadata.get('request_id', '')),
+                'scenario_id': metadata.get('scenario_id'),
+                'trial_id': metadata.get('trial_id'),
                 'language': language,
                 'duration': duration,
                 'wav_path': wav_path,

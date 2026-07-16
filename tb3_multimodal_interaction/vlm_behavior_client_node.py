@@ -140,7 +140,11 @@ CSV_FIELDS = [
     "http_status",
     "text_source",
     "text_ms",
+    "request_ingress_ms",
+    "request_dispatch_ms",
+    "request_to_asr_ms",
     "asr_ms",
+    "asr_capture_ms",
     "camera_wait_ms",
     "vlm_latency_ms",
     "validation_latency_ms",
@@ -167,10 +171,12 @@ class VlmBehaviorClient(Node):
         self.declare_parameter("request_topic", "/robot_ai/response_request")
         self.declare_parameter("status_topic", "/robot_ai/status")
         self.declare_parameter("behavior_plan_topic", "/robot_behavior/plan")
+        self.declare_parameter("evaluation_event_topic", "/robot_evaluation/vlm_complete")
+        self.declare_parameter("input_inspector_topic", "/robot_ai/input_inspector")
         self.declare_parameter("asr_text_topic", "/robot_asr/text")
         self.declare_parameter("asr_request_topic", "/robot_asr/request")
         self.declare_parameter("camera_topic", "/robot_camera/jpeg")
-        self.declare_parameter("llama_base_url", "http://192.168.64.246:18081")
+        self.declare_parameter("llama_base_url", "http://192.168.64.246:18082")
         self.declare_parameter("model", "qwen3vl2b")
         self.declare_parameter("timeout_sec", 45.0)
         self.declare_parameter("asr_timeout_sec", 12.0)
@@ -187,6 +193,8 @@ class VlmBehaviorClient(Node):
         self.request_topic = str(self.get_parameter("request_topic").value)
         self.status_topic = str(self.get_parameter("status_topic").value)
         self.behavior_plan_topic = str(self.get_parameter("behavior_plan_topic").value)
+        self.evaluation_event_topic = str(self.get_parameter("evaluation_event_topic").value)
+        self.input_inspector_topic = str(self.get_parameter("input_inspector_topic").value)
         self.asr_text_topic = str(self.get_parameter("asr_text_topic").value)
         self.asr_request_topic = str(self.get_parameter("asr_request_topic").value)
         self.camera_topic = str(self.get_parameter("camera_topic").value)
@@ -209,6 +217,8 @@ class VlmBehaviorClient(Node):
 
         self.status_pub = self.create_publisher(String, self.status_topic, 10)
         self.plan_pub = self.create_publisher(String, self.behavior_plan_topic, 10)
+        self.evaluation_pub = self.create_publisher(String, self.evaluation_event_topic, 10)
+        self.input_inspector_pub = self.create_publisher(String, self.input_inspector_topic, 10)
         self.asr_request_pub = self.create_publisher(String, self.asr_request_topic, 10)
         self.create_subscription(String, self.request_topic, self.on_request, 10)
         self.create_subscription(String, self.asr_text_topic, self.on_asr_text, 10)
@@ -290,6 +300,15 @@ class VlmBehaviorClient(Node):
     def handle_request(self, request_payload, received_time, received_mono):
         stamps = {"received": received_mono}
         wall_stamps = {"received": received_time}
+        try:
+            request_sent_mono = float(request_payload.get("request_monotonic_s", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            request_sent_mono = 0.0
+        # Only accept a same-kernel monotonic value within a bounded interval.
+        # Other request producers keep the previous receive-to-finish contract.
+        if 0.0 < request_sent_mono <= received_mono and received_mono - request_sent_mono <= 60.0:
+            stamps["request_sent"] = request_sent_mono
+            wall_stamps["request_sent"] = request_payload.get("time")
         request_id = str(request_payload.get("request_id") or self.next_request_id("vlm"))
         trace_id = str(request_payload.get("trace_id") or request_id)
         mode = str(request_payload.get("mode", "run"))
@@ -441,6 +460,33 @@ class VlmBehaviorClient(Node):
             apply_expression_style_guard(decision.plan, text)
             decision.plan["execution_mode"] = "dry_run" if mode == "dry_run" else "run"
             self.attach_trace(decision.plan, trace_id)
+            self.publish_input_inspector(
+                {
+                    "stage": "response",
+                    "trace_id": trace_id,
+                    "request_id": request_id,
+                    "model": self.model,
+                    "text": text,
+                    "expected_reply_language": expected_reply_language,
+                    "user_prompt": self.build_user_prompt(
+                        text,
+                        trace_id,
+                        expected_reply_language,
+                        context_turns,
+                    ),
+                    "context_turns": len(context_turns),
+                    "image_bytes": len(image_bytes),
+                    "image_jpeg_base64": (
+                        base64.b64encode(image_bytes).decode("ascii") if image_bytes else ""
+                    ),
+                    "raw_output": raw_output,
+                    "generated_json": json_text,
+                    "validated_plan": decision.plan,
+                    "accepted": decision.accepted,
+                    "fallback_used": decision.fallback_used,
+                    "fallback_reason": decision.fallback_reason,
+                }
+            )
             state = "validated" if decision.accepted else "fallback"
             self.publish_status(
                 {
@@ -530,8 +576,11 @@ class VlmBehaviorClient(Node):
         timings = self.make_timings(stamps)
         log_record = {
             "time": time.time(),
+            "received_time": received_time,
             "request_id": request_id,
             "trace_id": trace_id,
+            "scenario_id": request_payload.get("scenario_id"),
+            "trial_id": request_payload.get("trial_id"),
             "mode": mode,
             "model": self.model,
             "source": request_payload.get("source", ""),
@@ -549,7 +598,11 @@ class VlmBehaviorClient(Node):
             "validation_latency_ms": validation_latency_ms,
             "text_source": timings.get("text_source", ""),
             "text_ms": timings.get("text_ms", 0),
+            "request_ingress_ms": timings.get("request_ingress_ms", 0),
+            "request_dispatch_ms": timings.get("request_dispatch_ms", 0),
+            "request_to_asr_ms": timings.get("request_to_asr_ms", 0),
             "asr_ms": timings.get("asr_ms", 0),
+            "asr_capture_ms": timings.get("asr_capture_ms", 0),
             "camera_wait_ms": timings.get("camera_wait_ms", 0),
             "publish_ms": timings.get("publish_ms", 0),
             "total_ms": timings.get("total_ms", 0),
@@ -567,6 +620,13 @@ class VlmBehaviorClient(Node):
             "timings": timings,
         }
         self.write_logs(log_record)
+        evaluation_msg = String()
+        evaluation_msg.data = json.dumps(
+            log_record,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        self.evaluation_pub.publish(evaluation_msg)
         self.remember_turn(request_id, trace_id, request_payload, text, decision.plan, timings, published)
 
     def resolve_text(self, request_payload, request_id, stamps, wall_stamps, received_time, received_mono):
@@ -599,12 +659,20 @@ class VlmBehaviorClient(Node):
             )
             req = String()
             req.data = json.dumps(
-                {"duration": duration, "language": request_payload.get("language", "auto")},
+                {
+                    "duration": duration,
+                    "language": request_payload.get("language", "auto"),
+                    "request_id": str(request_payload.get("request_id", request_id) or request_id),
+                    "trace_id": str(request_payload.get("trace_id", request_id) or request_id),
+                    "scenario_id": request_payload.get("scenario_id"),
+                    "trial_id": request_payload.get("trial_id"),
+                },
                 separators=(",", ":"),
             )
             asr_start = time.time()
             stamps["asr_request"] = time.perf_counter()
             wall_stamps["asr_request"] = asr_start
+            stamps["asr_capture_ms"] = int(duration * 1000)
             self.asr_request_pub.publish(req)
             text = self.wait_for_asr_text(after_time=asr_start)
             if text:
@@ -684,10 +752,24 @@ class VlmBehaviorClient(Node):
     def make_timings(self, stamps, now=None):
         now = now or time.perf_counter()
         received = stamps.get("received", now)
+        request_sent = stamps.get("request_sent", received)
+        dispatch_end = (
+            stamps.get("asr_request")
+            or stamps.get("text_ready")
+            or stamps.get("asr_text_cached")
+            or received
+        )
         timings = {
-            "total_ms": elapsed_ms(received, now),
+            "total_ms": elapsed_ms(request_sent, now),
             "text_source": stamps.get("text_source", ""),
-            "asr_ms": elapsed_ms(stamps.get("asr_request"), stamps.get("asr_text")),
+            "request_ingress_ms": elapsed_ms(request_sent, received),
+            "request_dispatch_ms": elapsed_ms(received, dispatch_end),
+            "request_to_asr_ms": elapsed_ms(request_sent, stamps.get("asr_request")),
+            "asr_ms": elapsed_ms(
+                stamps.get("asr_request"),
+                stamps.get("asr_text") or stamps.get("asr_timeout"),
+            ),
+            "asr_capture_ms": stamps.get("asr_capture_ms", 0),
             "camera_wait_ms": elapsed_ms(stamps.get("camera_wait_start"), stamps.get("camera_ready")),
             "vlm_ms": elapsed_ms(stamps.get("vlm_start"), stamps.get("vlm_end")),
             "validation_ms": elapsed_ms(stamps.get("validation_start"), stamps.get("validation_end")),
@@ -781,33 +863,50 @@ class VlmBehaviorClient(Node):
             self._conversation_history.append(turn)
             self._conversation_history = self._conversation_history[-max(1, self.context_turn_limit * 3) :]
 
-    def call_llama(self, text, image_bytes, trace_id, expected_reply_language, context_turns=None):
+    def build_user_prompt(self, text, trace_id, expected_reply_language, context_turns=None):
         context_text = format_context_turns(context_turns or [])
+        return (
+            f"input_id: {trace_id}\n"
+            f"trace_id: {trace_id}\n"
+            f"expected_reply_language: {expected_reply_language}\n"
+            f"{context_text}"
+            f"User/ASR text: {text}\n"
+            "Use the latest image if provided. Keep reply short and do not guess uncertain visual details.\n"
+            "For visual questions or text-reading, answer from the latest image, not from old context.\n"
+            "If the user asks about what was just asked, previous answers, or recent progress, answer from Recent context directly.\n"
+            "Do not repeat old motion unless the current user asks.\n"
+            "Output contract checklist before you answer:\n"
+            f"- input_id must be exactly {trace_id}\n"
+            '- source must be "vlm"\n'
+            "- validated must be true\n"
+            "- fallback_used must be false\n"
+            "- include reply, reply_language, emotion, tts_style, face, and motion\n"
+            "- final motion must be stop\n"
+            "- do not omit required keys even for OCR or one-word answers\n"
+            "Produce the behavior plan JSON now."
+        )
+
+    def publish_input_inspector(self, payload):
+        event = dict(payload)
+        event["time"] = time.time()
+        msg = String()
+        msg.data = json.dumps(event, ensure_ascii=False, separators=(",", ":"))
+        self.input_inspector_pub.publish(msg)
+
+    def call_llama(self, text, image_bytes, trace_id, expected_reply_language, context_turns=None):
+        user_prompt = self.build_user_prompt(
+            text,
+            trace_id,
+            expected_reply_language,
+            context_turns,
+        )
         user_content = [
             {
                 "type": "text",
-                "text": (
-                    f"input_id: {trace_id}\n"
-                    f"trace_id: {trace_id}\n"
-                    f"expected_reply_language: {expected_reply_language}\n"
-                    f"{context_text}"
-                    f"User/ASR text: {text}\n"
-                    "Use the latest image if provided. Keep reply short and do not guess uncertain visual details.\n"
-                    "For visual questions or text-reading, answer from the latest image, not from old context.\n"
-                    "If the user asks about what was just asked, previous answers, or recent progress, answer from Recent context directly.\n"
-                    "Do not repeat old motion unless the current user asks.\n"
-                    "Output contract checklist before you answer:\n"
-                    f"- input_id must be exactly {trace_id}\n"
-                    "- source must be \"vlm\"\n"
-                    "- validated must be true\n"
-                    "- fallback_used must be false\n"
-                    "- include reply, reply_language, emotion, tts_style, face, and motion\n"
-                    "- final motion must be stop\n"
-                    "- do not omit required keys even for OCR or one-word answers\n"
-                    "Produce the behavior plan JSON now."
-                ),
+                "text": user_prompt,
             }
         ]
+        encoded = ""
         if image_bytes:
             encoded = base64.b64encode(image_bytes).decode("ascii")
             user_content.append(
@@ -816,6 +915,20 @@ class VlmBehaviorClient(Node):
                     "image_url": {"url": f"data:image/jpeg;base64,{encoded}"},
                 }
             )
+
+        self.publish_input_inspector(
+            {
+                "stage": "request",
+                "trace_id": trace_id,
+                "model": self.model,
+                "text": text,
+                "expected_reply_language": expected_reply_language,
+                "user_prompt": user_prompt,
+                "context_turns": len(context_turns or []),
+                "image_bytes": len(image_bytes),
+                "image_jpeg_base64": encoded,
+            }
+        )
 
         payload = {
             "model": self.model,
@@ -1035,6 +1148,12 @@ def is_meta_context_request(text):
             "刚才我问",
             "刚才的问题",
             "刚才那个问题",
+            "刚才那个",
+            "刚才那個",
+            "刚才的那个",
+            "刚才的那個",
+            "刚才那件",
+            "刚才那個物品",
             "刚才说",
             "刚才回答",
             "刚才做",
@@ -1063,6 +1182,8 @@ def is_meta_context_request(text):
             "两个分别",
             "さっき聞",
             "さっきの質問",
+            "さっきのあれ",
+            "さっきの物",
             "さっき何",
             "前回",
             "進捗",
@@ -1070,6 +1191,8 @@ def is_meta_context_request(text):
             "what did i ask",
             "what did you say",
             "what did we just",
+            "the item i just corrected",
+            "what was that earlier",
             "where are we",
             "current progress",
             "what is the progress",

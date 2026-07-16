@@ -4,9 +4,19 @@ set -euo pipefail
 CONTAINER="${CONTAINER:-turtlebot3}"
 LLAMA_BASE_URL="${VLM_BASE_URL:-http://192.168.64.246:18082}"
 MODEL="${VLM_MODEL:-qwen3vl8b}"
-LOG_DIR="${VLM_LOG_DIR:-/tmp/vlm_client_logs}"
-LOG_PATH="${LOG_PATH:-/tmp/vlm_client.log}"
-PID_PATH="${PID_PATH:-/tmp/vlm_client.pid}"
+RUNTIME_LOG_DIR="${CONTAINER_RUNTIME_LOG_DIR:-/workspace/runtime_logs/tb3_multimodal_interaction}"
+LOG_DIR="${VLM_LOG_DIR:-$RUNTIME_LOG_DIR/vlm_client_requests}"
+LOG_PATH="${LOG_PATH:-$RUNTIME_LOG_DIR/vlm_client.log}"
+PID_PATH="${PID_PATH:-$RUNTIME_LOG_DIR/vlm_client.pid}"
+RETENTION_DAYS="${RUNTIME_LOG_RETENTION_DAYS:-14}"
+RETAIN_FILES="${RUNTIME_LOG_RETAIN_FILES:-20}"
+
+docker exec "$CONTAINER" python3 \
+  /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/stop_matching_processes.py \
+  vlm_behavior_client_node
+docker exec "$CONTAINER" bash \
+  /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/prepare_runtime_log.sh \
+  "$LOG_PATH" "$RETENTION_DAYS" "$RETAIN_FILES"
 
 docker exec "$CONTAINER" bash -lc "
 set -euo pipefail
@@ -15,16 +25,7 @@ source /opt/ros/jazzy/setup.bash
 source /workspace/ros2_ws/install/setup.bash
 source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
 set -u
-mkdir -p '$LOG_DIR'
-if [ -s '$PID_PATH' ]; then
-  old_pid=\$(cat '$PID_PATH' || true)
-  if [ -n \"\$old_pid\" ]; then
-    kill \"\$old_pid\" >/dev/null 2>&1 || true
-    sleep 0.5
-  fi
-fi
-ps -eo pid,args | awk '/vlm_behavior_client_node/ && !/bash -lc/ && !/awk/ {print \$1}' | xargs -r kill >/dev/null 2>&1 || true
-sleep 0.5
+mkdir -p '$LOG_DIR' '$(dirname "$PID_PATH")'
 nohup ros2 run tb3_multimodal_interaction vlm_behavior_client_node --ros-args \
   -p llama_base_url:='$LLAMA_BASE_URL' \
   -p model:='$MODEL' \
