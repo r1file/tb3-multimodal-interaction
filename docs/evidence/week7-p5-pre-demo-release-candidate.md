@@ -13,6 +13,8 @@ real-motion acceptance remain open demo gates.
   shell syntax, Python compilation, both dashboard JavaScript bundles, and all
   automated tests passed.
 - Automated tests: `29 passed`.
+- A fresh GitHub clone of branch `codex/week7-pre-demo-rc` at commit `25d3ac4`
+  independently produced `REPOSITORY_VALIDATION_PASS` with a clean worktree.
 - No tracked or unignored credentials, private keys, forbidden model/archive
   artifacts, broken local Markdown links, or files larger than 10 MiB were
   reported.

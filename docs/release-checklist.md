@@ -8,7 +8,7 @@ safety gates are complete.
 
 - [x] Repository audit reports no credential, forbidden artifact, or file over
   10 MiB.
-- [ ] Shell syntax, Python compilation, dashboard JavaScript, and automated tests
+- [x] Shell syntax, Python compilation, dashboard JavaScript, and automated tests
   pass from a clean checkout.
 - [x] README and documentation index point only to canonical current entrypoints.
 - [x] Reproduction, hardware, limitations, lifecycle, troubleshooting, and
@@ -17,7 +17,7 @@ safety gates are complete.
 
 ## Reproduction and runtime
 
-- [ ] Clean GitHub checkout passes repository validation.
+- [x] Clean GitHub checkout passes repository validation.
 - [x] AI Max, Server PC, and TB3 install/runtime preflights pass.
 - [x] All three role statuses are `ready` with one critical instance each.
 - [x] Full health passes with `TB3_BEHAVIOR_DRY_RUN=true`.
