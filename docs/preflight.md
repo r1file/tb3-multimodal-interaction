@@ -9,6 +9,11 @@ bash deploy/preflight.sh <ai_max|server_pc|tb3> \
   --phase install --manifest PATH
 ```
 
+When the manifest is installed at `~/.config/tb3/host-manifest.toml`, the
+`--manifest` option may be omitted. Create the initial template with
+`bash deploy/role.sh manifest-init`; complete it once and distribute the same
+file to all three hosts.
+
 The install phase verifies the complete manifest, release checkout identity,
 local IP, routes, ports, NTP, Docker/Compose, external models and role-specific
 hardware. On ROS roles it also proves that Fast DDS XML is derivable from the

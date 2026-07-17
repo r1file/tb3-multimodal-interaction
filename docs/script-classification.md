@@ -34,7 +34,8 @@ Delete candidates after acceptance: old host copies of renamed scripts,
 
 ## Current entrypoint policy
 
-- `deploy/role.sh` is the only normal install/start/stop/restart/status entry.
+- `deploy/role.sh` is the only normal manifest initialization and
+  install/start/stop/restart/status entry.
 - `deploy/<role>/*.sh` and `scripts/start_*` are owned implementation helpers;
   do not mix them with the canonical role command during normal operation.
 - `scripts/smoke_*`, `scripts/health_check_full.sh`, and

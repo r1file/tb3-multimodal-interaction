@@ -37,8 +37,10 @@ runtime instruction.
 - [Script classification](script-classification.md)
 
 Run `bash scripts/validate_repository.sh` before publishing. The current
-runtime entrypoint is always
-`bash deploy/role.sh <role> <action> --manifest PATH`.
+runtime entrypoint is `bash deploy/role.sh <role> <action>`. Initialize its
+standard user-scoped configuration once with
+`bash deploy/role.sh manifest-init`; use `--manifest PATH` only for an
+intentional nonstandard location.
 
 ## Historical migration and research evidence
 

@@ -3,6 +3,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$REPO_ROOT/deploy/lib/manifest_path.sh"
 
 usage() {
   cat <<'EOF'
@@ -15,7 +16,7 @@ EOF
 
 ROLE="${1:-}"
 PHASE="install"
-MANIFEST="${TB3_HOST_MANIFEST:-$REPO_ROOT/host-manifest.toml}"
+MANIFEST="$(resolve_host_manifest_path "$REPO_ROOT")"
 if [[ $# -gt 0 ]]; then
   shift
 fi
