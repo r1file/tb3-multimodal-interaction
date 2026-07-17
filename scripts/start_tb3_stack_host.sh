@@ -76,7 +76,7 @@ if ! docker exec -e TB3_UI_PORT="$TB3_UI_PORT" "$CONTAINER" bash -lc '
     required_nodes=(/camera_capture_node /expression_behavior_node /face_display_node /mic_capture_node /motion_controller_node /speech_player_node)
     ready=0
     for _ in $(seq 1 30); do
-      nodes="$(timeout 4s ros2 node list 2>/dev/null || true)"
+      nodes="$(timeout 10s ros2 node list --no-daemon --spin-time 5 2>/dev/null || true)"
       ready=1
       for node in "${required_nodes[@]}"; do
         grep -qx "$node" <<<"$nodes" || { ready=0; break; }

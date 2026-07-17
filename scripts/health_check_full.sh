@@ -13,12 +13,12 @@ TOPIC_RETRY_S="${ROS_TOPIC_RETRY_S:-12}"
 FAIL=0
 
 count_publishers() {
-  (timeout "${TOPIC_TIMEOUT_S}s" ros2 topic info "$1" 2>/dev/null || true) |
+  (timeout "$((TOPIC_TIMEOUT_S + 2))s" ros2 topic info "$1" --no-daemon --spin-time "$TOPIC_TIMEOUT_S" 2>/dev/null || true) |
     awk '/Publisher count:/ {print $3; exit}'
 }
 
 count_subscribers() {
-  (timeout "${TOPIC_TIMEOUT_S}s" ros2 topic info "$1" 2>/dev/null || true) |
+  (timeout "$((TOPIC_TIMEOUT_S + 2))s" ros2 topic info "$1" --no-daemon --spin-time "$TOPIC_TIMEOUT_S" 2>/dev/null || true) |
     awk '/Subscription count:/ {print $3; exit}'
 }
 

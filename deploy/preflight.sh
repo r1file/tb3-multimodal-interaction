@@ -326,7 +326,7 @@ check_ros_runtime() {
       fail "ROS 2 discovery returned no nodes; verify ROS_DOMAIN_ID=$ROS_DOMAIN_ID, SUBNET routing, and Fast DDS peers"
     fi
     local topics
-    topics="$(docker exec "$ROS_CONTAINER" bash -lc "$ros_setup && timeout 8s ros2 topic list" 2>/dev/null)"
+    topics="$(docker exec "$ROS_CONTAINER" bash -lc "$ros_setup && timeout 10s ros2 topic list --no-daemon --spin-time 5" 2>/dev/null)"
     local topic
     for topic in /odom /robot_camera/jpeg /robot_audio/pcm /robot_asr/status /robot_tts/status /robot_behavior/plan; do
       if grep -qx "$topic" <<<"$topics"; then
@@ -337,7 +337,7 @@ check_ros_runtime() {
     done
   else
     local nodes
-    nodes="$(docker exec "$ROS_CONTAINER" bash -lc "$ros_setup && timeout 10s ros2 node list" 2>/dev/null)"
+    nodes="$(docker exec "$ROS_CONTAINER" bash -lc "$ros_setup && timeout 10s ros2 node list --no-daemon --spin-time 5" 2>/dev/null)"
     local node
     for node in /turtlebot3_node /diff_drive_controller /motion_controller_node /camera_capture_node /mic_capture_node /speech_player_node /face_display_node; do
       if grep -qx "$node" <<<"$nodes"; then
@@ -347,7 +347,7 @@ check_ros_runtime() {
       fi
     done
     local topics
-    topics="$(docker exec "$ROS_CONTAINER" bash -lc "$ros_setup && timeout 10s ros2 topic list" 2>/dev/null)"
+    topics="$(docker exec "$ROS_CONTAINER" bash -lc "$ros_setup && timeout 10s ros2 topic list --no-daemon --spin-time 5" 2>/dev/null)"
     local topic
     for topic in /odom /robot_camera/jpeg /robot_audio/pcm /robot_motion/action_cmd /robot_face/expression /robot_speech/wav; do
       if grep -qx "$topic" <<<"$topics"; then

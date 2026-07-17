@@ -219,6 +219,8 @@ def test_manifest_values_reach_canonical_runtime():
     assert 'TB3_CMD_VEL_CANDIDATES:?' in health
     assert "--no-daemon --spin-time 5" in device_start
     assert "--no-daemon --spin-time 5" in health
+    tb3_stack = (ROOT / "scripts" / "start_tb3_stack_host.sh").read_text(encoding="utf-8")
+    assert "ros2 node list --no-daemon --spin-time 5" in tb3_stack
     for role in ("server_pc", "tb3"):
         role_start = (ROOT / "deploy" / role / "start.sh").read_text(encoding="utf-8")
         assert "rm -rf -- build/tb3_multimodal_interaction install/tb3_multimodal_interaction" in role_start
