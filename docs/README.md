@@ -9,6 +9,8 @@ runtime instruction.
 - [Fresh-host reproduction](reproduction.md): prerequisite through rollback.
 - [Official demo runbook](demo-runbook.md): frozen P4 rows, verdicts, and
   operator-only physical gates.
+- [P4 demo test table](week7-p4-demo-test-table.md): completed automation versus
+  remaining operator-run tests.
 - [Prerequisites and external assets](prerequisites.md): tested hosts, versions,
   models, credentials, paths, and network assumptions.
 - [Preflight](preflight.md): read-only install and runtime readiness checks.
