@@ -139,12 +139,12 @@ append a new `trial_id` after a fix; never rewrite the earlier trial.
 
 ## 7. Completion boundary
 
-Week7 P4 engineering is complete when the frozen matrix, automated regressions,
+Week7 engineering acceptance required the frozen matrix, automated regressions,
 three clean-start sequences, safety boundaries, operator documentation, and one
-targeted post-deployment physical I/O smoke have passed. That boundary was met
-on 2026-07-17; see [`evidence/week7-closeout.md`](evidence/week7-closeout.md).
+targeted post-deployment physical I/O smoke. That boundary was met on
+2026-07-17 and is summarized in [`7-20-report.md`](7-20-report.md).
 
 A formal presentation selects the rows appropriate to its audience and records
-physical truth for each selected visual/OCR row. Those presentation-day checks,
-and any later release/tag decision, do not reopen Week7. They must still follow
+physical truth for each selected visual/OCR row. Those presentation-day checks
+and any later release/tag decision do not reopen Week7. They must still follow
 the safety and evidence rules in this runbook.

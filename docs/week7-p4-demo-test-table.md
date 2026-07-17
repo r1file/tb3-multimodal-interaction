@@ -103,9 +103,8 @@
 
 ## 相关资料
 
-- Markdown 源文件：https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/week7-p4-demo-test-table.md
+- Markdown 源文件：https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/week7-p4-demo-test-table.md
 - 冻结场景源：`config/week7_p4_demo_matrix.json`
 - 详细操作与安全边界：`docs/demo-runbook.md`
-- 自动化证据：`docs/evidence/week7-p4-automated-rehearsal.md`
-- Week7 收口证据：`docs/evidence/week7-closeout.md`
-- GitHub P4 草稿 PR：https://github.com/r1file/tb3-multimodal-interaction/pull/2
+- 评估记录格式：`docs/evaluation-schema.md`
+- Week7 报告：`docs/7-20-report.md`
