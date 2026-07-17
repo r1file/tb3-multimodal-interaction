@@ -10,10 +10,11 @@ The repository root is the ROS 2 package `tb3_multimodal_interaction`. Clone it
 directly into `workspace/ros2_ws/src/tb3_multimodal_interaction` on the Server PC
 and TurtleBot3. On AI Max it may be cloned anywhere under `/home/user/ROS_Cui`.
 
-The current branch is a **pre-demo release candidate**: platform lifecycle,
-diagnostics, evaluation logging, and dashboards are implemented and verified;
-the curated physical demo acceptance remains a separate P4/Week8 gate. Real
-motion is disabled by default.
+The Week7 platform baseline is engineering-complete: lifecycle, diagnostics,
+evaluation logging, dashboards, safety boundaries, automated regressions, and a
+targeted post-deployment physical I/O smoke are verified. The formal
+presentation and any release tag remain separate operator/publication events.
+Real motion is disabled by default.
 
 ## Quick start
 
@@ -42,6 +43,9 @@ bash scripts/start_tb3_display_only_host.sh
 Before publishing a change, run `bash scripts/validate_repository.sh`. In a ROS
 Jazzy environment this executes the complete test suite; outside ROS it runs
 the repository-safe subset plus syntax, asset, size, and credential checks.
+
+The frozen P4 scenario matrix and operator gates are documented in the
+[official demo runbook](docs/demo-runbook.md).
 
 Real motion is disabled by default. Set `TB3_BEHAVIOR_DRY_RUN=false` only after
 clearing the floor and confirming emergency-stop access. See the

@@ -38,6 +38,7 @@ node --check "$tmp_dir/ai_dashboard.js"
 tests=(
   test/test_behavior_plan_contract.py
   test/test_dashboard_observability_contract.py
+  test/test_demo_matrix.py
   test/test_evaluation_schema.py
   test/test_role_status_contract.py
   test/test_tb3_browser_single_instance_contract.py

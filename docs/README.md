@@ -7,6 +7,10 @@ runtime instruction.
 ## Current operator documentation
 
 - [Fresh-host reproduction](reproduction.md): prerequisite through rollback.
+- [Official demo runbook](demo-runbook.md): canonical execution, verdict, and
+  physical-safety procedure.
+- [Formal demo run sheet](week7-p4-demo-test-table.md): presentation order,
+  exact prompts, live cues, abort rules, and the extended scenario library.
 - [Prerequisites and external assets](prerequisites.md): tested hosts, versions,
   models, credentials, paths, and network assumptions.
 - [Preflight](preflight.md): read-only install and runtime readiness checks.
@@ -20,6 +24,11 @@ runtime instruction.
   [release checklist](release-checklist.md).
 - [Architecture](architecture.md) and
   [evaluation schema](evaluation-schema.md).
+
+## Weekly report
+
+- [7/20 report](7-20-report.md): Week7 productization, demo hardening, UI
+  redesign, technical evidence, research boundary, and Week8 handoff.
 
 ## Repository maintenance
 
