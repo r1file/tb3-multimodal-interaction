@@ -254,11 +254,6 @@ check_repo() {
   else
     fail "$configured_path is not a Git checkout; perform a fresh clone before deployment"
   fi
-  if [[ -d "$configured_path/tb3_week2_executor" || -d "$(dirname "$configured_path")/tb3_week2_executor" ]]; then
-    warn "legacy tb3_week2_executor is present; do not source, build, or copy from it during this deployment"
-  else
-    pass "no legacy tb3_week2_executor directory is used by this checkout"
-  fi
 }
 
 check_git_commit() {

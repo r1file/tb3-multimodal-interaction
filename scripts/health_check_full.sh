@@ -83,7 +83,10 @@ require_cmd_vel_sub() {
   for topic in "${cmd_vel_candidates[@]}"; do
     topic="${topic//[[:space:]]/}"
     [[ -n "$topic" ]] || continue
-    count="$(wait_count_subscribers "$topic")"
+    count="$(
+      (timeout 8s ros2 topic info "$topic" --no-daemon --spin-time 5 2>/dev/null || true) |
+        awk '/Subscription count:/ {print $3; exit}'
+    )"
     if [ "${count:-0}" -gt 0 ] 2>/dev/null; then
       echo "ok cmd_vel_sub $topic $count"
       return 0

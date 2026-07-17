@@ -8,10 +8,10 @@ source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
 if [[ "${TB3_CMD_VEL_TOPIC:?TB3_CMD_VEL_TOPIC is required}" == "auto" ]]; then
   IFS=',' read -r -a cmd_vel_candidates <<<"${TB3_CMD_VEL_CANDIDATES:?TB3_CMD_VEL_CANDIDATES is required for auto discovery}"
   discovered_topic=""
-  for _ in $(seq 1 4); do
+  for _ in 1 2; do
     for candidate in "${cmd_vel_candidates[@]}"; do
       subscription_count="$(
-        (timeout 1s ros2 topic info "$candidate" 2>/dev/null || true) |
+        (timeout 8s ros2 topic info "$candidate" --no-daemon --spin-time 5 2>/dev/null || true) |
           awk '/Subscription count:/ {print $3; exit}'
       )"
       if [ "${subscription_count:-0}" -gt 0 ] 2>/dev/null; then
@@ -19,7 +19,7 @@ if [[ "${TB3_CMD_VEL_TOPIC:?TB3_CMD_VEL_TOPIC is required}" == "auto" ]]; then
         break 2
       fi
     done
-    sleep 1
+    sleep 0.5
   done
   if [[ -z "$discovered_topic" ]]; then
     echo "No cmd_vel subscriber found among manifest candidates: $TB3_CMD_VEL_CANDIDATES" >&2

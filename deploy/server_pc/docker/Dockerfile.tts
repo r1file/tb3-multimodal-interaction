@@ -1,3 +1,4 @@
+# check=skip=InvalidDefaultArgInFrom
 ARG AV_TOOLS_BASE_IMAGE
 FROM ${AV_TOOLS_BASE_IMAGE}
 

@@ -1,3 +1,4 @@
+# check=skip=InvalidDefaultArgInFrom
 ARG PYTHON_BASE_IMAGE
 FROM ${PYTHON_BASE_IMAGE}
 

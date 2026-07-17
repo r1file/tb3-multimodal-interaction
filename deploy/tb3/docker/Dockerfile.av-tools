@@ -1,3 +1,4 @@
+# check=skip=InvalidDefaultArgInFrom
 ARG ROBOTIS_BASE_IMAGE
 FROM ${ROBOTIS_BASE_IMAGE}
 

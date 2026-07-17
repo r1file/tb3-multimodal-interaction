@@ -21,6 +21,7 @@ docker exec "$ROS_CONTAINER" bash -lc "
 set -e
 source /opt/ros/jazzy/setup.bash
 cd /workspace/ros2_ws
+rm -rf -- build/tb3_multimodal_interaction install/tb3_multimodal_interaction
 colcon build --packages-select tb3_multimodal_interaction --symlink-install
 "
 

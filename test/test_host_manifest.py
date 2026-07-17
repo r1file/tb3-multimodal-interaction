@@ -214,8 +214,14 @@ def test_manifest_values_reach_canonical_runtime():
         assert f'os.environ["{variable}"]' in role_status
     readiness = (ROOT / "scripts" / "check_tb3_bringup_graph.py").read_text(encoding="utf-8")
     health = (ROOT / "scripts" / "health_check_full.sh").read_text(encoding="utf-8")
+    device_start = (ROOT / "scripts" / "start_device_stack.sh").read_text(encoding="utf-8")
     assert 'os.environ["TB3_CMD_VEL_CANDIDATES"]' in readiness
     assert 'TB3_CMD_VEL_CANDIDATES:?' in health
+    assert "--no-daemon --spin-time 5" in device_start
+    assert "--no-daemon --spin-time 5" in health
+    for role in ("server_pc", "tb3"):
+        role_start = (ROOT / "deploy" / role / "start.sh").read_text(encoding="utf-8")
+        assert "rm -rf -- build/tb3_multimodal_interaction install/tb3_multimodal_interaction" in role_start
     for dockerfile in (
         ROOT / "deploy" / "server_pc" / "docker" / "Dockerfile.av-tools",
         ROOT / "deploy" / "tb3" / "docker" / "Dockerfile.av-tools",
