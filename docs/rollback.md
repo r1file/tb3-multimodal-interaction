@@ -1,40 +1,20 @@
-# P6 Rollback
+# Release rollback
 
-Do not delete the old package until the renamed package passes a complete
-three-host trace.
+Rollback changes the deployment from one reviewed `commit + manifest` pair to
+an earlier reviewed pair. It never extracts an archive over a running role.
 
-## Backup roots
+1. Save status JSON, preflight output and the current manifest SHA-256.
+2. Stop the affected roles in reverse order with the current manifest.
+3. Verify the earlier manifest and commit are available and that external asset
+   hashes still match.
+4. Check out the earlier commit as a clean detached checkout at that role's
+   `repo_dir`; keep the replaced checkout outside `ros_workspace_dir/ros2_ws/src`.
+5. Run install preflight, `role.sh <role> install`, start in normal order, status
+   and runtime preflight with the earlier manifest.
+6. Retain both manifests, checkout backups and logs until post-rollback health
+   is accepted.
 
-- Mac: `/Users/cuibaitao/Documents/Research_backups/p6_20260710_1935JST`
-- Server PC: `/home/user/ROS_Cui/backups/p6_20260710_1935JST/server_pc`
-- TB3: `/home/turtlebot3/backups/p6_20260710_1935JST/tb3`
-- AI Max: `/home/user/ROS_Cui/backups/p6_20260710_1935JST/ai_max`
-
-## Rollback order
-
-1. Stop only the affected role services.
-2. Restore the role archive into `/` with `tar -xzf ARCHIVE -C /`.
-3. If Server PC model cache was renamed, move `model_cache` back to
-   `week3_model_cache` before rebuilding the old ASR image.
-4. Rebuild the old ROS package with `colcon build --packages-select
-   tb3_week2_executor --symlink-install`.
-5. Run the old role startup scripts and old full health check.
-
-Restoring archives is intentionally manual so rollback cannot run accidentally.
-
-## Read-only verification before rollback
-
-Never discover a broken backup during an incident. On the affected host, verify
-the retained directory without extracting or deleting anything:
-
-```bash
-test -d BACKUP_ROOT
-find BACKUP_ROOT -maxdepth 2 -type f -print
-find BACKUP_ROOT -maxdepth 2 -type f \( -name '*.tar.gz' -o -name '*.tgz' \) \
-  -exec tar -tzf {} \; >/dev/null
-du -sh BACKUP_ROOT
-```
-
-For the Mac backup use the same `test`, `find`, and `du` commands. A successful
-archive listing proves readability only; it does not authorize restore. Keep
-all old package directories until the post-rollback health check is complete.
+Timestamped `manifest_runtime_backup_*` directories preserve Compose/UI files
+replaced by install. They are diagnostic inputs, not an automatic restore
+mechanism. Historical P6 archives remain historical evidence and are not the
+current release rollback contract.
