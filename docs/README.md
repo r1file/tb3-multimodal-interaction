@@ -39,13 +39,14 @@ runtime instruction.
 Run `bash scripts/validate_repository.sh` before publishing. The current
 runtime entrypoint is always `bash deploy/role.sh <role> <action>`.
 
-## Historical migration and evidence
+## Historical migration and research evidence
 
 - [Pre-migration inventory](inventory.md)
 - [Migration map](migration-map.md)
 - [P6 migration result](migration-result.md)
-- [Week7 evidence](evidence/)
+- [Model comparison and research validation](evidence/)
 
-Historical pages deliberately retain old names, paths, metrics, and commands so
-past results remain auditable. Do not copy their startup commands into a current
-deployment.
+Historical migration pages retain old names, paths, metrics, and commands so
+past results remain auditable. Phase-by-phase engineering logs are kept in the
+project workspace rather than shipped as product documentation. Do not copy old
+startup commands into a current deployment.
