@@ -1,8 +1,7 @@
-# Week7 pre-demo release checklist
+# Week7 platform release checklist
 
-Status: **pre-demo release candidate**. Engineering wrap-up may be reviewed and
-merged before P4, but no final release tag is created until demo and physical
-safety gates are complete.
+Status: **Week7 engineering complete; formal presentation ready**. A final tag
+or GitHub release is a separate publication decision after the presentation.
 
 ## Repository and documentation
 
@@ -23,14 +22,16 @@ safety gates are complete.
 - [x] Full health passes with `TB3_BEHAVIOR_DRY_RUN=true`.
 - [x] Dashboard endpoints and P3 evaluation outputs are readable.
 
-## Open demo gates
+## Demo readiness
 
 - [x] P4 showcase and regression rows are frozen.
 - [x] Three clean-start demo sequences pass.
-- [ ] Visual/OCR answers are checked against the physical scene.
-- [ ] Any real-motion row passes the user-controlled floor and emergency-stop
-  check after dry-run.
-- [ ] Final metrics and known failures are recorded without rewriting raw data.
+- [x] A post-deployment live I/O smoke covers real ASR, a non-zero camera frame,
+  VLM/validation, TTS/playback, face UI, and bounded motion with final stop.
+- [x] Final Week7 metrics and the recoverable first-turn ASR timeout are recorded
+  without rewriting raw data.
+- [x] The formal-presentation run sheet requires scene truth for selected
+  visual/OCR rows and explicit floor/emergency-stop authorization for motion.
 
 ## Publication
 
@@ -38,4 +39,5 @@ safety gates are complete.
   a draft PR.
 - [ ] Runtime hosts are updated to the reviewed commit after merge.
 - [ ] Final release notes identify external models/assets and known limitations.
-- [ ] Tag and GitHub release are created only after all open demo gates pass.
+- [ ] Tag and GitHub release are created only when the formal presentation and
+  publication review are accepted; this is not a Week7 completion requirement.

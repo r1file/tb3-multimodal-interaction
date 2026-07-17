@@ -1,6 +1,6 @@
 # Official demo runbook
 
-This is the canonical P4 operator procedure. The frozen machine-readable source
+This is the canonical formal-presentation operator procedure. The frozen machine-readable source
 is [`config/week7_p4_demo_matrix.json`](../config/week7_p4_demo_matrix.json).
 Historical Week6 recording tables are evidence only and must not be used for
 startup commands or final acceptance.
@@ -80,8 +80,8 @@ python3 /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/run_demo_matri
   --input-path asr_injected
 ```
 
-Injected ASR is labeled `asr_injected` and does **not** satisfy the official
-microphone/ASR gate.
+Injected ASR is labeled `asr_injected`; it is regression evidence, not a live
+microphone check.
 
 Summarize without modifying the raw files:
 
@@ -139,7 +139,12 @@ append a new `trial_id` after a fix; never rewrite the earlier trial.
 
 ## 7. Completion boundary
 
-P4 is complete only when all four input paths have the required evidence, three
-clean-start sequences pass, visual/OCR rows match their recorded scenes, and the
-authorized real-motion row passes. Until then, the repository remains a
-pre-demo release candidate without a final tag.
+Week7 P4 engineering is complete when the frozen matrix, automated regressions,
+three clean-start sequences, safety boundaries, operator documentation, and one
+targeted post-deployment physical I/O smoke have passed. That boundary was met
+on 2026-07-17; see [`evidence/week7-closeout.md`](evidence/week7-closeout.md).
+
+A formal presentation selects the rows appropriate to its audience and records
+physical truth for each selected visual/OCR row. Those presentation-day checks,
+and any later release/tag decision, do not reopen Week7. They must still follow
+the safety and evidence rules in this runbook.

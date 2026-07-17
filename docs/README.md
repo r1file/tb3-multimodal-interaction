@@ -7,10 +7,10 @@ runtime instruction.
 ## Current operator documentation
 
 - [Fresh-host reproduction](reproduction.md): prerequisite through rollback.
-- [Official demo runbook](demo-runbook.md): frozen P4 rows, verdicts, and
-  operator-only physical gates.
-- [P4 demo test table](week7-p4-demo-test-table.md): completed automation versus
-  remaining operator-run tests.
+- [Official demo runbook](demo-runbook.md): canonical execution, verdict, and
+  physical-safety procedure.
+- [Formal demo run sheet](week7-p4-demo-test-table.md): presentation order,
+  exact prompts, live cues, abort rules, and the extended scenario library.
 - [Prerequisites and external assets](prerequisites.md): tested hosts, versions,
   models, credentials, paths, and network assumptions.
 - [Preflight](preflight.md): read-only install and runtime readiness checks.

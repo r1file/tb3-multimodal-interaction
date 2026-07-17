@@ -10,10 +10,11 @@ The repository root is the ROS 2 package `tb3_multimodal_interaction`. Clone it
 directly into `workspace/ros2_ws/src/tb3_multimodal_interaction` on the Server PC
 and TurtleBot3. On AI Max it may be cloned anywhere under `/home/user/ROS_Cui`.
 
-The current branch is a **pre-demo release candidate**: platform lifecycle,
-diagnostics, evaluation logging, and dashboards are implemented and verified;
-the curated physical demo acceptance remains a separate P4/Week8 gate. Real
-motion is disabled by default.
+The Week7 platform baseline is engineering-complete: lifecycle, diagnostics,
+evaluation logging, dashboards, safety boundaries, automated regressions, and a
+targeted post-deployment physical I/O smoke are verified. The formal
+presentation and any release tag remain separate operator/publication events.
+Real motion is disabled by default.
 
 ## Quick start
 
