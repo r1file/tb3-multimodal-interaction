@@ -44,6 +44,7 @@ tests=(
   test/test_evaluation_schema.py
   test/test_host_manifest.py
   test/test_role_status_contract.py
+  test/test_speech_model_preload_contract.py
   test/test_tb3_browser_single_instance_contract.py
 )
 if python3 -c 'import rclpy' >/dev/null 2>&1; then

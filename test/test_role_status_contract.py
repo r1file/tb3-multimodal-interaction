@@ -1,5 +1,7 @@
 import importlib.util
+import json
 import os
+import subprocess
 import tempfile
 import time
 import unittest
@@ -67,6 +69,45 @@ class RoleStatusContractTest(unittest.TestCase):
         result = role_status.dashboard_server_component({}, {"state": "ready", "age_s": 1})
         self.assertEqual(result["state"], "unreachable")
         self.assertFalse(result["ok"])
+
+    def test_speech_container_is_starting_until_model_marker_exists(self):
+        original_docker_state = role_status.docker_state
+        original_run = role_status.run
+        role_status.docker_state = lambda _name: {
+            "state": "ready", "ok": True, "name": "speech", "detail": "running"
+        }
+        role_status.run = lambda command: subprocess.CompletedProcess(command, 1, "", "")
+        try:
+            result = role_status.speech_model_state("speech")
+        finally:
+            role_status.docker_state = original_docker_state
+            role_status.run = original_run
+        self.assertEqual(result["state"], "starting")
+        self.assertFalse(result["ok"])
+
+    def test_speech_model_marker_exposes_preloaded_languages(self):
+        original_docker_state = role_status.docker_state
+        original_run = role_status.run
+        marker = {
+            "ready": True,
+            "engine": "Kokoro",
+            "languages": ["ja", "zh", "en"],
+            "preload_ms": 1234,
+        }
+        role_status.docker_state = lambda _name: {
+            "state": "ready", "ok": True, "name": "speech", "detail": "running"
+        }
+        role_status.run = lambda command: subprocess.CompletedProcess(
+            command, 0, json.dumps(marker), ""
+        )
+        try:
+            result = role_status.speech_model_state("speech")
+        finally:
+            role_status.docker_state = original_docker_state
+            role_status.run = original_run
+        self.assertEqual(result["state"], "ready")
+        self.assertEqual(result["languages"], ["ja", "zh", "en"])
+        self.assertEqual(result["preload_ms"], 1234)
 
 
 if __name__ == "__main__":

@@ -57,6 +57,7 @@ services:
      - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
      - TB3_FASTDDS_PROFILE=${TB3_FASTDDS_PROFILE}
      - SENSEVOICE_MODEL_DIR=/root/.cache/modelscope/hub/models/iic/SenseVoiceSmall
+     - SPEECH_MODEL_READY_FILE=/tmp/tb3_asr_model_ready.json
     volumes:
       - /dev/shm:/dev/shm
       - ${ROS_WORKSPACE_DIR}:/workspace
@@ -65,6 +66,7 @@ services:
       bash -lc "source /opt/ros/jazzy/setup.bash &&
       source /workspace/ros2_ws/install/setup.bash &&
       source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh &&
+      rm -f "$$SPEECH_MODEL_READY_FILE" &&
       ros2 launch tb3_multimodal_interaction asr_adapter.launch.py"
 
   tb3_tts:
@@ -87,6 +89,7 @@ services:
      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
      - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
      - TB3_FASTDDS_PROFILE=${TB3_FASTDDS_PROFILE}
+     - SPEECH_MODEL_READY_FILE=/tmp/tb3_tts_models_ready.json
     volumes:
       - /dev/shm:/dev/shm
       - ${ROS_WORKSPACE_DIR}:/workspace
@@ -94,4 +97,5 @@ services:
       bash -lc "source /opt/ros/jazzy/setup.bash &&
       source /workspace/ros2_ws/install/setup.bash &&
       source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh &&
+      rm -f "$$SPEECH_MODEL_READY_FILE" &&
       ros2 launch tb3_multimodal_interaction tts_adapter.launch.py"

@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import tempfile
 import threading
@@ -46,9 +47,53 @@ class TtsTopicAdapter(Node):
         self._lock = threading.Lock()
         self._busy = False
         self._pipelines = {}
-        self.get_logger().info(
-            f'TTS adapter ready: request={request_topic}, audio={audio_topic}, voices={self.voices}'
+        self._model_ready_file = Path(
+            os.environ.get('SPEECH_MODEL_READY_FILE', '/tmp/tb3_tts_models_ready.json')
         )
+        self._model_ready_file.unlink(missing_ok=True)
+        preload_ms = self.preload_pipelines()
+        self.get_logger().info(
+            f'TTS adapter ready: request={request_topic}, audio={audio_topic}, '
+            f'voices={self.voices}, models_preloaded=true, preload_ms={preload_ms}'
+        )
+
+    def preload_pipelines(self):
+        started = time.perf_counter()
+        warmup_text = {
+            'ja': '準備完了。',
+            'zh': '准备就绪。',
+            'en': 'Ready.',
+        }
+        for language in ('ja', 'zh', 'en'):
+            pipeline = self.get_pipeline(language)
+            generated = False
+            for _graphemes, _phonemes, _audio in pipeline(
+                warmup_text[language],
+                voice=self.voices[language],
+            ):
+                generated = True
+                break
+            if not generated:
+                raise RuntimeError(f'Kokoro warm-up returned no audio for {language}')
+
+        preload_ms = int((time.perf_counter() - started) * 1000)
+        self._model_ready_file.parent.mkdir(parents=True, exist_ok=True)
+        self._model_ready_file.write_text(
+            json.dumps(
+                {
+                    'ready': True,
+                    'engine': 'Kokoro',
+                    'languages': ['ja', 'zh', 'en'],
+                    'voices': self.voices,
+                    'preload_ms': preload_ms,
+                    'time': time.time(),
+                },
+                ensure_ascii=False,
+                separators=(',', ':'),
+            ),
+            encoding='utf-8',
+        )
+        return preload_ms
 
     def on_request(self, msg):
         try:
