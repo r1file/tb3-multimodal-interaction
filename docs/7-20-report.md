@@ -10,7 +10,7 @@ Week7では、Week6で安定化した同期型 embodied VLM prototypeを、**新
 
 三機すべてに共通のlifecycle interface、fresh-host preflight、persistent log、single-instance保証、rollback/reproduction文書を追加した。実行時には一つの`trace_id`でASR、camera、VLM、validator、executor、TTS、playbackを接続し、Server PCでは処理中のstageとlatency、AI MaxではVLMへ実際に入力された画像・text・User Prompt・生成JSONを確認できるようにした。
 
-Week7 checklistは67/67で完了した。三回のclean start、local 36 tests、Server ROS container 38 tests、repository audit 155 files、GitHub Actionsを通過した。最終I/O smokeでは最初のASR timeoutを隠さず`degraded`として保存し、その後三回連続で`success`、最後のtraceではASR、39,093-byte camera frame、VLM、validator、TTS、TB3 playback、face、bounded motion、final stopまで確認した（[Week7 technical record](https://app.notion.com/p/3996e7e4145f81ef8f8bde3ca2844ebc)、[closeout evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/evidence/week7-closeout.md)）。
+Week7 checklistは67/67で完了した。三回のclean start、local 36 tests、Server ROS container 38 tests、repository audit 155 files、GitHub Actionsを通過した。最終I/O smokeでは最初のASR timeoutを隠さず`degraded`として保存し、その後三回連続で`success`、最後のtraceではASR、39,093-byte camera frame、VLM、validator、TTS、TB3 playback、face、bounded motion、final stopまで確認した（[Week7 technical record](https://app.notion.com/p/3996e7e4145f81ef8f8bde3ca2844ebc)、[closeout evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/evidence/week7-closeout.md)）。
 
 ## Week7のsystem positioning
 
@@ -63,7 +63,7 @@ flowchart LR
 | Area | Week7 result |
 | --- | --- |
 | Productization | `.env.example`、role別prerequisite、external asset checksum、install/runtime preflight、fresh checkout rehearsalを整備した。Gitに含まれないmodel・device設定もbuild前に確認できる。 |
-| Lifecycle | `bash deploy/role.sh <role> <install\|start\|stop\|restart\|status>`へ統一し、AI Max → Server PC → TB3のstart、逆順stop、single-instance、persistent log、rotation、rollbackを契約化した。 |
+| Lifecycle | `deploy/role.sh`を唯一のrole入口とし、actionをinstall、start、stop、restart、statusへ統一した。AI Max → Server PC → TB3のstart、逆順stop、single-instance、persistent log、rotation、rollbackを契約化した。 |
 | Diagnostics | `starting / stale / missing / unhealthy / unreachable / ready / stopped`を共通state vocabularyとし、実際のrelay重複、route、permission、Xorg、ROS discovery failureをstatusとlogから特定できるようにした。 |
 | Evaluation | `tb3_single_turn_evaluation@1.0.0`を追加し、raw model outputからTB3 playbackまでを一行のJSONL/CSVに統合した。wall clockはlabel、durationはmonotonicとして分離した。 |
 | Server PC UI | 旧AI Chain StatusとROS Nodesを一つの`CHAIN STATUS`へ統合し、node別health light、active-stage highlight、hover detail、chain外node、9-stage latency barを実装した。ASR表示も復元した。 |
@@ -79,7 +79,7 @@ Week7開始時のbaseline `09f67b3`からengineering closeout `b50055c`まで、
 
 各roleについてOS、Docker/Compose、ROBOTIS Jazzy base、host package、network、device、model assetをmanifest化した。Qwen GGUF/mmproj、SenseVoiceSmall、llama.cpp binary、cache、credentialはGit外に置いたまま、path、version、size、SHA-256をdocument化した。
 
-`deploy/preflight.sh`はinstall phaseとruntime phaseを分離し、missing model、device、route、occupied port、Fast DDS設定、NTP、camera、microphone、speaker、display、ROS node/topic、live `/odom`をactionable errorとして検出する。AI Max、Server PC、TB3のfinal rehearsalはいずれもwarning 0でpassし、Server PCのfresh checkoutは旧`tb3_week2_executor`なしでcolcon buildと13 testsを完了した（[P1 evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/evidence/week7-p1-fresh-host-preflight.md)）。
+`deploy/preflight.sh`はinstall phaseとruntime phaseを分離し、missing model、device、route、occupied port、Fast DDS設定、NTP、camera、microphone、speaker、display、ROS node/topic、live `/odom`をactionable errorとして検出する。AI Max、Server PC、TB3のfinal rehearsalはいずれもwarning 0でpassし、Server PCのfresh checkoutは旧`tb3_week2_executor`なしでcolcon buildと13 testsを完了した（[P1 evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/evidence/week7-p1-fresh-host-preflight.md)）。
 
 ### Lifecycle ownership
 
@@ -87,7 +87,7 @@ Week7開始時のbaseline `09f67b3`からengineering closeout `b50055c`まで、
 
 TB3ではbringup readinessを一つのrclpy graph probeへまとめ、resourceの小さいRaspberry Piで複数のROS CLIを同時起動しないようにした。Xorg、Openbox、iDesk、Epiphanyはtransient systemd unitとして同じlifecycleに入り、X displayとWebKit pageがliveになるまでstartを成功扱いしない。Epiphanyは起動前に既存instanceを終了し、browser多重化とdesktop lifecycleからの孤立を防いだ。animation自体には変更を加えていない。
 
-二回のrestart acceptanceではAI Max 7/7 s、Server PC 31/30 s、TB3 108/110 sでreadyとなり、重複critical processは0であった。その後の三回のclean-start demo rehearsalでは5/5/5 s、8/8/8 s、78/79/81 sまで安定した（[P2 lifecycle evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/evidence/week7-p2-lifecycle-diagnostics.md)、[P4 rehearsal evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/evidence/week7-p4-automated-rehearsal.md)）。
+二回のrestart acceptanceではAI Max 7/7 s、Server PC 31/30 s、TB3 108/110 sでreadyとなり、重複critical processは0であった。その後の三回のclean-start demo rehearsalでは5/5/5 s、8/8/8 s、78/79/81 sまで安定した（[P2 lifecycle evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/evidence/week7-p2-lifecycle-diagnostics.md)、[P4 rehearsal evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/evidence/week7-p4-automated-rehearsal.md)）。
 
 ## 2. UI再設計とfull-chain observability
 
@@ -107,7 +107,7 @@ Server PC Web UIは、個別のAI statusとROS node listを読む画面から、
 
 AI Max Dashboardはmodel serverのhealth pageから、VLM input/outputを監査できる画面へ変更した。実際に送信されたJPEG、resolved ASR/text、完全なUser Prompt、generated JSON、latest llama logを並列に確認できる。llama process表示のerrorはcontainerへ`procps`とhost PID namespaceを追加して修正し、実hostのllama-serverが正確に一つであることを表示する。
 
-live traceでは48,386-byte image、904-character User Prompt、257-character accepted JSON、VLM 4,642 ms、execution 132 ms、total 4,844 msを同一画面で確認した。両DashboardはDynabook G83の13-inch 1920×1080を基準に再配置し、horizontal overflowなし、Server critical viewは900 px以内に収めた（[P3.5 UI evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/evidence/week7-p3-dashboard-observability.md)）。
+live traceでは48,386-byte image、904-character User Prompt、257-character accepted JSON、VLM 4,642 ms、execution 132 ms、total 4,844 msを同一画面で確認した。両DashboardはDynabook G83の13-inch 1920×1080を基準に再配置し、horizontal overflowなし、Server critical viewは900 px以内に収めた（[P3.5 UI evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/evidence/week7-p3-dashboard-observability.md)）。
 
 ## 3. Evaluation schemaと技術的trace
 
@@ -121,7 +121,7 @@ live traceでは48,386-byte image、904-character User Prompt、257-character ac
 
 異なる三機のwall clockを引き算せず、wall clockはcorrelation labelに限定し、処理時間はlocal monotonic durationから構成する。text-onlyではASRを`null`、dry-runではTTS/playbackを`not_applicable`とし、未観測stageを成功扱いしない。ASR timeout/no-audioも`degraded/asr_instability`または`error/incomplete`としてdenominatorに残す。
 
-Week6のraw dataは変更せずconverterでsummary化した。preserved baselineは2Bが27 attempts、fallback 3.7%、median VLM/total 1,332/6,747 ms、8Bが32 attempts、fallback 18.8%、median VLM/total 3,306.5/8,741 msである。Week7 schemaはfuture researchでFirst Response Latency等を追加できるが、現時点ではSSAMやasynchronous stageを仮定しないresearch-neutralな形式である（[P3 schema evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/codex/week7-pre-demo-rc/docs/evidence/week7-p3-evaluation-schema-validation.md)）。
+Week6のraw dataは変更せずconverterでsummary化した。preserved baselineは2Bが27 attempts、fallback 3.7%、median VLM/total 1,332/6,747 ms、8Bが32 attempts、fallback 18.8%、median VLM/total 3,306.5/8,741 msである。Week7 schemaはfuture researchでFirst Response Latency等を追加できるが、現時点ではSSAMやasynchronous stageを仮定しないresearch-neutralな形式である（[P3 schema evidence](https://github.com/r1file/tb3-multimodal-interaction/blob/main/docs/evidence/week7-p3-evaluation-schema-validation.md)）。
 
 ## 4. Demo安定化
 
