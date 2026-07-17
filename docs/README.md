@@ -25,6 +25,11 @@ runtime instruction.
 - [Architecture](architecture.md) and
   [evaluation schema](evaluation-schema.md).
 
+## Weekly report
+
+- [7/20 report](7-20-report.md): Week7 productization, demo hardening, UI
+  redesign, technical evidence, research boundary, and Week8 handoff.
+
 ## Repository maintenance
 
 - [GitHub workflow](github-workflow.md)
