@@ -27,8 +27,9 @@ preflight.
 
 ## Configuration ownership
 
-`config/host-manifest.example.toml` is the schema example. A populated manifest
-is external and copied unchanged to all hosts. It owns:
+`config/host-manifest.example.toml` is the schema example. Initialize one
+external copy with `bash deploy/role.sh manifest-init`, complete it once, and
+copy it unchanged to all hosts. It owns:
 
 - release repository/commit and all role checkout/workspace paths;
 - addresses, ports, ROS domain and generated Fast DDS peers;

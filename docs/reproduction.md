@@ -14,21 +14,24 @@ manifest. Run role-local commands only on the matching host.
 
 ## 2. Create one manifest
 
-On an administration machine, copy the template outside the checkout. Fill all
-three role tables and pin the full reviewed commit SHA. The manifest contains
-topology and host paths, not credentials.
+On an administration machine, initialize the template outside the checkout.
+Fill all three role tables and pin the full reviewed commit SHA. The manifest
+contains topology and host paths, not credentials.
 
 ```bash
-cp config/host-manifest.example.toml /secure/deploy/tb3-release.toml
+bash deploy/role.sh manifest-init
 git rev-parse HEAD
 # Set [release].commit to that exact SHA.
 python3 deploy/host_manifest.py validate \
-  --manifest /secure/deploy/tb3-release.toml
-sha256sum /secure/deploy/tb3-release.toml
+  --manifest ~/.config/tb3/host-manifest.toml
+sha256sum ~/.config/tb3/host-manifest.toml
 ```
 
-Copy this exact file to every host. Do not create per-host variants: all role
-tables remain together and the SHA-256 must match on all three machines.
+`manifest-init` creates the parent directory with private permissions when
+needed, writes the template as mode `0600`, and refuses to overwrite an existing
+file. Copy this exact completed file to `~/.config/tb3/host-manifest.toml` on
+every host. Do not run separate edits on each host: all role tables remain
+together and the SHA-256 must match.
 
 ## 3. Clone the same artifact on every host
 
@@ -48,9 +51,8 @@ test "$(git -C REPO_PATH rev-parse HEAD)" = "RELEASE_COMMIT"
 ```bash
 bash scripts/validate_repository.sh
 bash deploy/preflight.sh <ai_max|server_pc|tb3> \
-  --phase install --manifest /secure/deploy/tb3-release.toml
-bash deploy/role.sh <role> install \
-  --manifest /secure/deploy/tb3-release.toml
+  --phase install
+bash deploy/role.sh <role> install
 ```
 
 Fix every `FAIL`. Install renders role-owned Compose/UI files and, on ROS hosts,
@@ -63,11 +65,14 @@ Start AI Max, Server PC, then TB3. After each start, require both status and
 runtime preflight to pass.
 
 ```bash
-bash deploy/role.sh <role> start --manifest /secure/deploy/tb3-release.toml
-bash deploy/role.sh <role> status --manifest /secure/deploy/tb3-release.toml
-bash deploy/preflight.sh <role> --phase runtime \
-  --manifest /secure/deploy/tb3-release.toml
+bash deploy/role.sh <role> start
+bash deploy/role.sh <role> status
+bash deploy/preflight.sh <role> --phase runtime
 ```
+
+Commands resolve `TB3_HOST_MANIFEST` first, then the standard user path, then
+the legacy repository-local `host-manifest.toml`. Pass `--manifest PATH` when a
+release intentionally lives elsewhere.
 
 Status JSON records `manifest_id`, manifest SHA-256 and release commit. After
 TB3 is ready, run `scripts/health_check_full.sh full` inside the configured ROS

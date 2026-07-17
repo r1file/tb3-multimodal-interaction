@@ -21,12 +21,12 @@ Real motion is disabled by default.
 
 1. Follow the [fresh-host reproduction guide](docs/reproduction.md), including
    prerequisites and external model assets.
-2. Copy `config/host-manifest.example.toml` outside Git, fill all three roles,
-   and pin `[release].commit` to the exact reviewed commit. Copy that same file,
-   unchanged, to all three hosts.
-3. Run `bash deploy/preflight.sh <role> --phase install --manifest PATH` and fix every failure.
+2. Run `bash deploy/role.sh manifest-init` once on the administration machine.
+   Fill all three roles, pin `[release].commit` to the exact reviewed commit,
+   then copy that same file unchanged to the standard path on all three hosts.
+3. Run `bash deploy/preflight.sh <role> --phase install` and fix every failure.
 4. Install role-specific runtime configuration with
-   `bash deploy/role.sh <role> install --manifest PATH`.
+   `bash deploy/role.sh <role> install`.
 5. Start roles in order:
    - AI Max: `bash deploy/role.sh ai_max start --manifest PATH`
    - Server PC: `bash deploy/role.sh server_pc start --manifest PATH`
@@ -34,6 +34,10 @@ Real motion is disabled by default.
 6. After each start, run the matching `--phase runtime` preflight. Verify the
    full stack from TB3 with `bash scripts/health_check_full.sh full` inside the
    configured ROS container.
+
+The default manifest path is `$XDG_CONFIG_HOME/tb3/host-manifest.toml` or
+`~/.config/tb3/host-manifest.toml`. `TB3_HOST_MANIFEST` and `--manifest PATH`
+remain available for deliberately nonstandard locations.
 
 To start only the TB3 display path (`face_display_node` on port 8765, Xorg,
 Openbox, and Epiphany) without the remaining device or behavior nodes, run on

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "deploy" / "host_manifest.py"
 EXAMPLE = ROOT / "config" / "host-manifest.example.toml"
+ROLE_CLI = ROOT / "deploy" / "role.sh"
+PATH_HELPER = ROOT / "deploy" / "lib" / "manifest_path.sh"
 
 
 def configured_manifest(tmp_path: Path, *, server_ip="10.20.0.20", tb3_ip="10.20.0.30") -> Path:
@@ -176,6 +179,82 @@ def test_missing_manifest_fails_before_lifecycle_action():
     )
     assert result.returncode == 2
     assert "Missing host manifest" in result.stderr
+
+
+def test_manifest_init_creates_private_default_template_and_refuses_overwrite(tmp_path):
+    home = tmp_path / "home"
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env.pop("XDG_CONFIG_HOME", None)
+    env.pop("TB3_HOST_MANIFEST", None)
+
+    first = subprocess.run(
+        ["bash", str(ROLE_CLI), "manifest-init"],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+    )
+    manifest = home / ".config" / "tb3" / "host-manifest.toml"
+    assert first.returncode == 0
+    assert f"Initialized host manifest template: {manifest}" in first.stdout
+    assert manifest.read_bytes() == EXAMPLE.read_bytes()
+    assert stat.S_IMODE(manifest.stat().st_mode) == 0o600
+
+    manifest.write_text("preserve-me\n", encoding="utf-8")
+    second = subprocess.run(
+        ["bash", str(ROLE_CLI), "manifest-init"],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+    )
+    assert second.returncode == 2
+    assert "Refusing to overwrite existing host manifest" in second.stderr
+    assert manifest.read_text(encoding="utf-8") == "preserve-me\n"
+
+
+def test_manifest_init_supports_explicit_output(tmp_path):
+    output = tmp_path / "release" / "three-host.toml"
+    result = subprocess.run(
+        ["bash", str(ROLE_CLI), "manifest-init", "--output", str(output)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0
+    assert output.read_bytes() == EXAMPLE.read_bytes()
+
+
+def resolve_manifest(repo_root: Path, env: dict[str, str]) -> str:
+    command = f'source "{PATH_HELPER}"; resolve_host_manifest_path "$1"'
+    return subprocess.check_output(
+        ["bash", "-c", command, "resolve-test", str(repo_root)],
+        env=env,
+        text=True,
+    ).strip()
+
+
+def test_manifest_path_precedence_env_user_config_repo_fallback(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    home = tmp_path / "home"
+    user_manifest = home / ".config" / "tb3" / "host-manifest.toml"
+    repo_manifest = repo / "host-manifest.toml"
+    explicit = tmp_path / "explicit.toml"
+    base_env = os.environ.copy()
+    base_env["HOME"] = str(home)
+    base_env.pop("XDG_CONFIG_HOME", None)
+    base_env.pop("TB3_HOST_MANIFEST", None)
+
+    assert resolve_manifest(repo, base_env) == str(user_manifest)
+    repo_manifest.write_text("repo\n", encoding="utf-8")
+    assert resolve_manifest(repo, base_env) == str(repo_manifest)
+    user_manifest.parent.mkdir(parents=True)
+    user_manifest.write_text("user\n", encoding="utf-8")
+    assert resolve_manifest(repo, base_env) == str(user_manifest)
+    explicit_env = base_env | {"TB3_HOST_MANIFEST": str(explicit)}
+    assert resolve_manifest(repo, explicit_env) == str(explicit)
 
 
 def test_canonical_loader_requires_clean_release_checkout():

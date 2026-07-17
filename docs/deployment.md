@@ -20,6 +20,16 @@ bash deploy/role.sh <ai_max|server_pc|tb3> \
   <install|start|stop|restart|status> --manifest PATH
 ```
 
+Initialize the standard user-scoped manifest once with:
+
+```bash
+bash deploy/role.sh manifest-init
+```
+
+After the completed file has been copied unchanged to
+`~/.config/tb3/host-manifest.toml` on every host, `--manifest PATH` may be
+omitted. An explicit flag or `TB3_HOST_MANIFEST` still overrides the default.
+
 Do not mix this with direct component launch commands during normal operation.
 The dispatcher owns processes, containers, PID files, state markers and logs.
 
