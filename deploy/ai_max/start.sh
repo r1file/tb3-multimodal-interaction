@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export TB3_ROLE="${TB3_ROLE:-ai_max}"
 source "$SCRIPT_DIR/../lib/load_env.sh"
 source "$SCRIPT_DIR/../lib/runtime.sh"
 
@@ -26,7 +27,12 @@ RUNTIME_LOG_RETAIN_FILES="$RUNTIME_LOG_RETAIN_FILES" \
 PORT="$VLM_DASHBOARD_PORT" \
 LLAMA_PORT="$VLM_PORT" \
 ROOT="$AI_MAX_ROOT" \
+IMAGE="$AI_DASHBOARD_IMAGE" \
+NAME="$AI_DASHBOARD_CONTAINER" \
 SERVER_STATUS_URL="http://$SERVER_PC_IP:$SERVER_DASHBOARD_PORT/status.json" \
+STARTUP_GRACE_S="$ROLE_STARTUP_GRACE_S" \
+STALE_AFTER_S="$ROLE_STATUS_STALE_S" \
+AI_DASHBOARD_BASE_IMAGE="$AI_DASHBOARD_BASE_IMAGE" \
   bash "$REPO_ROOT/ai_max_vlm_server/dashboard/run_dashboard.sh"
 
 dashboard_ready=0
@@ -40,7 +46,7 @@ for _ in $(seq 1 20); do
 done
 if [[ "$dashboard_ready" -ne 1 ]]; then
   echo "AI Max dashboard API did not become ready on port $VLM_DASHBOARD_PORT." >&2
-  docker logs --tail 100 tb3-ai-max-dashboard >&2 || true
+  docker logs --tail 100 "$AI_DASHBOARD_CONTAINER" >&2 || true
   exit 1
 fi
 

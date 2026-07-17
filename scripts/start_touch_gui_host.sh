@@ -2,14 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-URL="${1:-http://127.0.0.1:8765}"
-DISPLAY_VALUE="${DISPLAY:-:0}"
-PROFILE_DIR="${TB3_UI_EPIPHANY_PROFILE:-${HOME:-/home/turtlebot3}/.cache/tb3_ui/epiphany-profile}"
-EPIPHANY_LOG="${TB3_UI_EPIPHANY_LOG:-${HOME:-/home/turtlebot3}/.cache/tb3_ui/tb3_ui_epiphany.log}"
+URL="${1:?TB3 UI URL is required}"
+DISPLAY_VALUE="${TB3_DISPLAY:?TB3_DISPLAY is required from the host manifest}"
+HOME_VALUE="${TB3_HOME_DIR:?TB3_HOME_DIR is required from the host manifest}"
+PROFILE_DIR="${TB3_UI_EPIPHANY_PROFILE:-$HOME_VALUE/.cache/tb3_ui/epiphany-profile}"
+EPIPHANY_LOG="${TB3_UI_EPIPHANY_LOG:-$HOME_VALUE/.cache/tb3_ui/tb3_ui_epiphany.log}"
 XORG_LOG="${TB3_UI_XORG_LOG:-/tmp/tb3_ui_xorg.log}"
 OPENBOX_LOG="${TB3_UI_OPENBOX_LOG:-/tmp/tb3_ui_openbox.log}"
 IDESK_LOG="${TB3_UI_IDESK_LOG:-/tmp/tb3_ui_idesk.log}"
-XORG_VT="${TB3_UI_XORG_VT:-vt1}"
+XORG_VT="${TB3_UI_XORG_VT:?TB3_UI_XORG_VT is required from the host manifest}"
 XORG_READY_TIMEOUT_S="${TB3_UI_XORG_READY_TIMEOUT_S:-20}"
 OPENBOX_READY_TIMEOUT_S="${TB3_UI_OPENBOX_READY_TIMEOUT_S:-5}"
 BROWSER_READY_TIMEOUT_S="${TB3_UI_BROWSER_READY_TIMEOUT_S:-20}"
@@ -123,7 +124,7 @@ start_xorg_if_needed() {
     --property=RestartSec=1s \
     --property="StandardOutput=append:$XORG_LOG" \
     --property="StandardError=append:$XORG_LOG" \
-    -- Xorg :0 "$XORG_VT" -nolisten tcp >/dev/null
+    -- Xorg "$DISPLAY_VALUE" "$XORG_VT" -nolisten tcp >/dev/null
 
   if ! wait_for_x_display "$XORG_READY_TIMEOUT_S"; then
     echo "Error: display $DISPLAY_VALUE was not ready after ${XORG_READY_TIMEOUT_S}s." >&2
@@ -151,7 +152,7 @@ start_openbox_if_needed() {
       --property="StandardOutput=append:$OPENBOX_LOG" \
       --property="StandardError=append:$OPENBOX_LOG" \
       --setenv="DISPLAY=$DISPLAY_VALUE" \
-      --setenv="HOME=${HOME:-/home/turtlebot3}" \
+      --setenv="HOME=$HOME_VALUE" \
       -- openbox >/dev/null
     for ((attempt = 0; attempt < OPENBOX_READY_TIMEOUT_S * 10; attempt++)); do
       if systemctl --user is-active --quiet "$OPENBOX_UNIT" && live_named_process openbox; then
@@ -188,7 +189,7 @@ start_idesk_if_needed() {
     --property="StandardOutput=append:$IDESK_LOG" \
     --property="StandardError=append:$IDESK_LOG" \
     --setenv="DISPLAY=$DISPLAY_VALUE" \
-    --setenv="HOME=${HOME:-/home/turtlebot3}" \
+    --setenv="HOME=$HOME_VALUE" \
     -- idesk >/dev/null
   sleep 0.5
 }
@@ -277,7 +278,7 @@ launch_browser() {
     --property="StandardOutput=append:$EPIPHANY_LOG" \
     --property="StandardError=append:$EPIPHANY_LOG" \
     --setenv="DISPLAY=$DISPLAY_VALUE" \
-    --setenv="HOME=${HOME:-/home/turtlebot3}" \
+    --setenv="HOME=$HOME_VALUE" \
     --setenv="XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
     --setenv=GDK_BACKEND=x11 \
     --setenv=GSK_RENDERER=cairo \

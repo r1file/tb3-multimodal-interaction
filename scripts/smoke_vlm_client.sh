@@ -2,8 +2,8 @@
 set -euo pipefail
 
 LOG_PATH="${LOG_PATH:-/tmp/vlm_client.log}"
-LLAMA_BASE_URL="${VLM_BASE_URL:-http://192.168.64.246:18082}"
-MODEL="${VLM_MODEL:-qwen3vl8b}"
+LLAMA_BASE_URL="${VLM_BASE_URL:?VLM_BASE_URL is required from the host manifest}"
+MODEL="${VLM_MODEL:?VLM_MODEL is required from the host manifest}"
 TEXT="${TEXT:-Please greet me, stay still, and use a calm expression.}"
 MODE="${MODE:-dry_run}"
 INCLUDE_CAMERA="${INCLUDE_CAMERA:-true}"

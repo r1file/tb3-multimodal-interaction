@@ -5,8 +5,8 @@ import time
 import urllib.request
 
 
-SOURCE_URL = os.environ.get("SOURCE_URL", "http://127.0.0.1:8775/status.json")
-TARGET_URL = os.environ.get("TARGET_URL", "http://192.168.64.246:18181/api/server_status")
+SOURCE_URL = os.environ["SOURCE_URL"]
+TARGET_URL = os.environ["TARGET_URL"]
 INTERVAL_S = float(os.environ.get("INTERVAL_S", "2.0"))
 
 

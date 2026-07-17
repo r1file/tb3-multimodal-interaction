@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONTAINER="${CONTAINER:-turtlebot3}"
-LLAMA_BASE_URL="${VLM_BASE_URL:-http://192.168.64.246:18082}"
-MODEL="${VLM_MODEL:-qwen3vl8b}"
-RUNTIME_LOG_DIR="${CONTAINER_RUNTIME_LOG_DIR:-/workspace/runtime_logs/tb3_multimodal_interaction}"
+CONTAINER="${ROS_CONTAINER:?ROS_CONTAINER is required from the host manifest}"
+LLAMA_BASE_URL="${VLM_BASE_URL:?VLM_BASE_URL is required from the host manifest}"
+MODEL="${VLM_MODEL:?VLM_MODEL is required from the host manifest}"
+RUNTIME_LOG_DIR="${CONTAINER_RUNTIME_LOG_DIR:?CONTAINER_RUNTIME_LOG_DIR is required from the host manifest}"
 LOG_DIR="${VLM_LOG_DIR:-$RUNTIME_LOG_DIR/vlm_client_requests}"
 LOG_PATH="${LOG_PATH:-$RUNTIME_LOG_DIR/vlm_client.log}"
 PID_PATH="${PID_PATH:-$RUNTIME_LOG_DIR/vlm_client.pid}"
-RETENTION_DAYS="${RUNTIME_LOG_RETENTION_DAYS:-14}"
-RETAIN_FILES="${RUNTIME_LOG_RETAIN_FILES:-20}"
+RETENTION_DAYS="${RUNTIME_LOG_RETENTION_DAYS:?RUNTIME_LOG_RETENTION_DAYS is required from the host manifest}"
+RETAIN_FILES="${RUNTIME_LOG_RETAIN_FILES:?RUNTIME_LOG_RETAIN_FILES is required from the host manifest}"
 
 docker exec "$CONTAINER" python3 \
   /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/stop_matching_processes.py \

@@ -1,4 +1,6 @@
-FROM robotis/turtlebot3:jazzy-latest
+# check=skip=InvalidDefaultArgInFrom
+ARG ROBOTIS_BASE_IMAGE
+FROM ${ROBOTIS_BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 

@@ -5,7 +5,7 @@ accepted. The clean repository contains only the functional names below.
 
 | Old script | New location | Class |
 |---|---|---|
-| `install_week2_audio_tools_container.sh` | `scripts/install_audio_tools_container.sh` | Keep / rename |
+| `install_week2_audio_tools_container.sh` | Removed; image dependencies live in the pinned Dockerfile | Delete |
 | `start_face_gui.sh` | `scripts/start_face_gui.sh` | Keep |
 | `start_tb3_bringup.sh` | `scripts/start_tb3_bringup.sh` | Keep |
 | `start_touch_gui_host.sh` | `scripts/start_touch_gui_host.sh` | Keep |

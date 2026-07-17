@@ -12,7 +12,7 @@ from std_msgs.msg import String, UInt8MultiArray
 class MicCapture(Node):
     def __init__(self):
         super().__init__('mic_capture_node')
-        self.declare_parameter('alsa_device', 'plughw:CARD=Device,DEV=0')
+        self.declare_parameter('alsa_device', '')
         self.declare_parameter('sample_rate', 16000)
         self.declare_parameter('channels', 1)
         self.declare_parameter('chunk_ms', 200)
@@ -20,6 +20,8 @@ class MicCapture(Node):
         self.declare_parameter('status_topic', '/robot_audio/status')
 
         self.alsa_device = str(self.get_parameter('alsa_device').value)
+        if not self.alsa_device:
+            raise ValueError('microphone ALSA device must be supplied by the host manifest launch path')
         self.sample_rate = int(self.get_parameter('sample_rate').value)
         self.channels = int(self.get_parameter('channels').value)
         self.chunk_ms = int(self.get_parameter('chunk_ms').value)

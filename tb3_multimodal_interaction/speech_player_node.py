@@ -14,10 +14,12 @@ from std_msgs.msg import String, UInt8MultiArray
 class SpeechPlayer(Node):
     def __init__(self):
         super().__init__('speech_player_node')
-        self.declare_parameter('alsa_device', 'plughw:CARD=UACDemoV10,DEV=0')
+        self.declare_parameter('alsa_device', '')
         self.declare_parameter('playback_timeout_margin_sec', 5.0)
         self.declare_parameter('min_playback_timeout_sec', 8.0)
         self.alsa_device = str(self.get_parameter('alsa_device').value)
+        if not self.alsa_device:
+            raise ValueError('speaker ALSA device must be supplied by the host manifest launch path')
         self.playback_timeout_margin_sec = float(self.get_parameter('playback_timeout_margin_sec').value)
         self.min_playback_timeout_sec = float(self.get_parameter('min_playback_timeout_sec').value)
         self.status_pub = self.create_publisher(String, '/robot_speech/status', 10)

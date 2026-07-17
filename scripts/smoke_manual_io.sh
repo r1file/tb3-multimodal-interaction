@@ -10,7 +10,7 @@ if [ -f /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh ]; 
 else
   unset ROS_DISCOVERY_SERVER
   unset ROS_SUPER_CLIENT
-  export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-30}"
+  export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:?ROS_DOMAIN_ID is required from the host manifest}"
 fi
 
 ros2 topic pub --once /robot_expression/trigger std_msgs/msg/String "{data: happy}"

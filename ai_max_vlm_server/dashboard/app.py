@@ -12,18 +12,15 @@ from urllib.parse import urlparse
 
 
 HOST = os.environ.get("DASHBOARD_HOST", "0.0.0.0")
-PORT = int(os.environ.get("DASHBOARD_PORT", "18181"))
-LLAMA_BASE_URL = os.environ.get("LLAMA_BASE_URL", "http://host.docker.internal:18082").rstrip("/")
-SERVER_STATUS_URL = os.environ.get(
-    "SERVER_STATUS_URL",
-    "http://192.168.250.30:8775/status.json",
-)
+PORT = int(os.environ["DASHBOARD_PORT"])
+LLAMA_BASE_URL = os.environ["LLAMA_BASE_URL"].rstrip("/")
+SERVER_STATUS_URL = os.environ["SERVER_STATUS_URL"]
 LOG_DIR = Path(os.environ.get("LLAMA_LOG_DIR", "/logs"))
 TAIL_LINES = int(os.environ.get("TAIL_LINES", "80"))
 LAST_RELAY_STATUS = {"time": 0.0, "data": None}
 STARTED_AT = time.time()
-STARTUP_GRACE_S = float(os.environ.get("STARTUP_GRACE_S", "180"))
-STALE_AFTER_S = float(os.environ.get("STALE_AFTER_S", "30"))
+STARTUP_GRACE_S = float(os.environ["STARTUP_GRACE_S"])
+STALE_AFTER_S = float(os.environ["STALE_AFTER_S"])
 
 
 def fetch_json(url, timeout=1.5):

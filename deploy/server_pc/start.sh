@@ -2,27 +2,28 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export TB3_ROLE="${TB3_ROLE:-server_pc}"
 source "$SCRIPT_DIR/../lib/load_env.sh"
 source "$SCRIPT_DIR/../lib/runtime.sh"
 
 mkdir -p "$SERVER_RUNTIME_LOG_DIR"
+python3 "$REPO_ROOT/deploy/host_manifest.py" render-fastdds \
+  --manifest "$TB3_HOST_MANIFEST" --role server_pc --repo-root "$REPO_ROOT" \
+  --output "$HOST_FASTDDS_PROFILE"
 prune_runtime_logs "$SERVER_RUNTIME_LOG_DIR"
 write_role_state server_pc starting "starting ROS, ASR, TTS, dashboard, VLM client, and relay"
 trap 'write_role_state server_pc failed "start failed at line $LINENO"' ERR
 
 cd "$SERVER_COMPOSE_DIR"
-docker compose up -d "$ROS_CONTAINER"
+docker compose up -d turtlebot3
 
 docker exec "$ROS_CONTAINER" bash -lc "
 set -e
 source /opt/ros/jazzy/setup.bash
 cd /workspace/ros2_ws
+rm -rf -- build/tb3_multimodal_interaction install/tb3_multimodal_interaction
 colcon build --packages-select tb3_multimodal_interaction --symlink-install
 "
-
-for legacy_container in week3_asr week3_tts; do
-  docker rm -f "$legacy_container" >/dev/null 2>&1 || true
-done
 
 docker compose up -d tb3_asr tb3_tts
 TB3_COMPOSE_DIR="$SERVER_COMPOSE_DIR" \
@@ -43,6 +44,7 @@ bash "$REPO_ROOT/scripts/prepare_runtime_log.sh" \
 nohup env \
   SOURCE_URL="http://127.0.0.1:$SERVER_DASHBOARD_PORT/status.json" \
   TARGET_URL="http://$AI_MAX_IP:$VLM_DASHBOARD_PORT/api/server_status" \
+  INTERVAL_S="$STATUS_RELAY_INTERVAL_S" \
   python3 "$REPO_ROOT/ai_max_vlm_server/dashboard/server_status_relay.py" \
   >"$SERVER_RUNTIME_LOG_DIR/server_status_relay.log" 2>&1 &
 echo "$!" >"$SERVER_RUNTIME_LOG_DIR/server_status_relay.pid"

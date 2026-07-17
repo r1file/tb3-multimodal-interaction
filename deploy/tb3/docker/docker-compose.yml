@@ -1,10 +1,12 @@
 services:
   turtlebot3:
-    container_name: turtlebot3
-    image: ros-cui/turtlebot3:jazzy-av-tools
+    container_name: ${ROS_CONTAINER}
+    image: ${ROS_IMAGE}
     build:
       context: .
       dockerfile: Dockerfile.av-tools
+      args:
+        ROBOTIS_BASE_IMAGE: ${ROBOTIS_BASE_IMAGE}
     tty: true
     restart: unless-stopped
     cap_add:
@@ -17,17 +19,26 @@ services:
     ipc: host
     pid: host
     environment:
-     - DISPLAY=${DISPLAY}
+     - DISPLAY=${TB3_DISPLAY}
+     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+     - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
+     - TB3_FASTDDS_PROFILE=${TB3_FASTDDS_PROFILE}
+     - TB3_UI_PORT=${TB3_UI_PORT}
+     - TB3_CAMERA_DEVICE=${TB3_CAMERA_DEVICE}
+     - TB3_MIC_ALSA_DEVICE=${TB3_MIC_ALSA_DEVICE}
+     - TB3_SPEAKER_ALSA_DEVICE=${TB3_SPEAKER_ALSA_DEVICE}
+     - TB3_CMD_VEL_TOPIC=${TB3_CMD_VEL_TOPIC}
+     - TB3_CMD_VEL_CANDIDATES=${TB3_CMD_VEL_CANDIDATES}
      - QT_X11_NO_MITSHM=1
-     - TURTLEBOT3_MODEL=burger
-     - LDS_MODEL=LDS-02
+     - TURTLEBOT3_MODEL=${TURTLEBOT3_MODEL}
+     - LDS_MODEL=${LDS_MODEL}
     volumes:
       - /dev:/dev
       - /dev/shm:/dev/shm
       - /run/udev:/run/udev
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      - ./workspace:/workspace
-      - ../../:/root/turtlebot3_ws/src/turtlebot3
+      - ${ROS_WORKSPACE_DIR}:/workspace
+      - ${ROBOTIS_REPO_DIR}:/root/turtlebot3_ws/src/turtlebot3
     privileged: true
     command: bash

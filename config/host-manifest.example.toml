@@ -1,0 +1,95 @@
+schema_version = 1
+
+[release]
+manifest_id = "REPLACE_WITH_MANIFEST_ID"
+repository = "git@github.com:r1file/tb3-multimodal-interaction.git"
+commit = "REPLACE_WITH_RELEASE_COMMIT"
+
+[network]
+ai_max_ip = "192.0.2.10"
+server_pc_ip = "192.0.2.20"
+tb3_ip = "192.0.2.30"
+vlm_port = 18082
+vlm_dashboard_port = 18181
+server_dashboard_port = 8775
+tb3_ui_port = 8765
+
+[ros]
+domain_id = 30
+automatic_discovery_range = "SUBNET"
+peer_port_start = 14910
+peer_port_end = 14929
+container_fastdds_profile = "/workspace/runtime_logs/tb3_multimodal_interaction/fastdds_initial_peers.xml"
+
+[runtime]
+ntp_required = true
+log_retention_days = 14
+log_retain_files = 20
+startup_grace_s = 180
+status_stale_s = 30
+dashboard_timeout_s = 5
+status_relay_interval_s = 2
+robotis_base_image = "robotis/turtlebot3@sha256:c510fb503c71ef9bfbd8165e4e2bbcac8006d91c548aea246113c4fbe352ba4d"
+ai_dashboard_base_image = "python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de"
+robotis_repository = "https://github.com/ROBOTIS-GIT/turtlebot3.git"
+robotis_commit = "da785b7201d317e6e2a662e41bb3d3fd50ebd503"
+
+[ai_max]
+repo_dir = "/srv/tb3/ai/repo"
+root_dir = "/srv/tb3/ai"
+llama_cpp_dir = "/srv/tb3/ai/llama.cpp"
+llama_server = "/srv/tb3/ai/llama.cpp/build/bin/llama-server"
+llama_cpp_repository = "https://github.com/ggml-org/llama.cpp.git"
+llama_cpp_commit = "32120c10e33baae8061e9961e6c3f1248302a331"
+model = "qwen3vl8b"
+model_path = "/srv/tb3-models/Qwen3VL-8B-Instruct-Q4_K_M.gguf"
+mmproj_path = "/srv/tb3-models/mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf"
+model_sha256 = "67d1659bfe71b89d50b45a4ad1a9e5b997e5bb16ce5da66a6a6167abd569e9e2"
+mmproj_sha256 = "c6ba85508d82f42590e6eb77d5340369ab6fecf107a7561d809523d8aa5f3bfd"
+context_size = 4096
+gpu_layers = 999
+wait_timeout_s = 180
+runtime_log_dir = "/srv/tb3/ai/runtime_logs/tb3_multimodal_interaction"
+dashboard_image = "tb3-ai-max-dashboard:latest"
+dashboard_container = "tb3-ai-max-dashboard"
+
+[server_pc]
+repo_dir = "/srv/tb3/server-workspace/ros2_ws/src/tb3_multimodal_interaction"
+compose_dir = "/srv/tb3/server-compose"
+ros_workspace_dir = "/srv/tb3/server-workspace"
+robotis_repo_dir = "/srv/tb3/robotis-turtlebot3"
+runtime_log_dir = "/srv/tb3/server-workspace/runtime_logs/tb3_multimodal_interaction"
+ros_container = "tb3-server-ros"
+ros_image = "ros-cui/turtlebot3:jazzy-av-tools"
+asr_container = "tb3-asr"
+tts_container = "tb3-tts"
+asr_image = "ros-cui/turtlebot3:jazzy-asr"
+tts_image = "ros-cui/turtlebot3:jazzy-tts"
+sensevoice_model_dir = "/srv/tb3-models/SenseVoiceSmall"
+sensevoice_model_sha256 = "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea"
+turtlebot3_model = "burger"
+lidar_model = "LDS-02"
+
+[tb3]
+repo_dir = "/srv/tb3/robot-workspace/ros2_ws/src/tb3_multimodal_interaction"
+compose_dir = "/srv/tb3/robot-compose"
+ros_workspace_dir = "/srv/tb3/robot-workspace"
+robotis_repo_dir = "/srv/tb3/robotis-turtlebot3"
+runtime_log_dir = "/srv/tb3/robot-workspace/runtime_logs/tb3_multimodal_interaction"
+home_dir = "/home/robot"
+ros_container = "tb3-robot-ros"
+ros_image = "ros-cui/turtlebot3:jazzy-av-tools"
+turtlebot3_model = "burger"
+lidar_model = "LDS-02"
+camera_device = "/dev/REPLACE_CAMERA"
+opencr_device = "/dev/REPLACE_OPENCR"
+lidar_device = "/dev/REPLACE_LIDAR"
+mic_alsa_device = "plughw:CARD=REPLACE_MIC,DEV=0"
+speaker_alsa_device = "plughw:CARD=REPLACE_SPEAKER,DEV=0"
+display = ":0"
+xorg_vt = "vt1"
+cmd_vel_topic = "auto"
+cmd_vel_candidates = "/cmd_vel,/robot_a/cmd_vel,/robot_b/cmd_vel"
+behavior_dry_run = true
+behavior_max_duration = 1.5
+behavior_motion_gap_s = 0.08

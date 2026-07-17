@@ -1,4 +1,6 @@
-FROM ros-cui/turtlebot3:jazzy-av-tools
+# check=skip=InvalidDefaultArgInFrom
+ARG AV_TOOLS_BASE_IMAGE
+FROM ${AV_TOOLS_BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
@@ -16,16 +18,14 @@ RUN apt-get update && \
 
 RUN python3 -m pip install --break-system-packages \
         --index-url https://download.pytorch.org/whl/cpu \
-        torch \
-        torchaudio && \
+        torch==2.11.0+cpu \
+        torchaudio==2.11.0+cpu && \
     python3 -m pip install --break-system-packages \
-        funasr \
-        modelscope \
-        sentencepiece \
-        soundfile
+        funasr==1.3.10 \
+        modelscope==1.37.1 \
+        sentencepiece==0.2.1 \
+        soundfile==0.14.0
 
 RUN mkdir -p "${SENSEVOICE_MODEL_DIR}"
-
-COPY model_cache/SenseVoiceSmall/ ${SENSEVOICE_MODEL_DIR}/
 
 CMD ["bash"]

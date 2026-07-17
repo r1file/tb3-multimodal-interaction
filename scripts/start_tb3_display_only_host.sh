@@ -2,8 +2,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-URL="${1:-http://127.0.0.1:8765}"
-ROS_CONTAINER="${TB3_ROS_CONTAINER:-turtlebot3}"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export TB3_ROLE=tb3
+source "$REPO_ROOT/deploy/lib/load_env.sh"
+URL="${1:-http://127.0.0.1:$TB3_UI_PORT}"
 FACE_LOG="${TB3_UI_FACE_LOG:-/tmp/tb3_face_display.log}"
 FACE_START_SCRIPT="/workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/start_face_gui.sh"
 
@@ -14,7 +16,7 @@ face_server_ready() {
 
 if ! docker ps --format '{{.Names}}' | grep -qx "$ROS_CONTAINER"; then
   echo "Error: $ROS_CONTAINER container is not running." >&2
-  echo "Start it first: cd ~/turtlebot3/docker/jazzy && ./container.sh start" >&2
+  echo "Start it first with: bash deploy/role.sh tb3 start --manifest $TB3_HOST_MANIFEST" >&2
   exit 1
 fi
 
