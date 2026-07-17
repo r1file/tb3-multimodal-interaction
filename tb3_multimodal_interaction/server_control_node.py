@@ -466,10 +466,12 @@ class ServerControl(Node):
 
     def __init__(self):
         super().__init__('server_control_node')
-        self.declare_parameter('port', 8775)
-        self.declare_parameter('face_state_url', 'http://192.168.250.10:8765/state.json')
+        self.declare_parameter('port', 0)
+        self.declare_parameter('face_state_url', '')
         self.declare_parameter('node_monitor_grace_sec', 12.0)
         self.port = int(self.get_parameter('port').value)
+        if not 1 <= self.port <= 65535:
+            raise ValueError('port must be supplied by the host manifest')
         self.face_state_url = str(self.get_parameter('face_state_url').value)
         self.node_monitor_grace_sec = float(self.get_parameter('node_monitor_grace_sec').value)
         self.trigger_pub = self.create_publisher(String, '/robot_expression/trigger', 10)

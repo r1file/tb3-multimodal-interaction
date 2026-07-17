@@ -5,21 +5,21 @@ ROS 2 traffic stays between Server PC and TB3; AI Max is reached over HTTP.
 
 ```mermaid
 flowchart LR
-  subgraph TB3["TurtleBot3 · 192.168.250.10"]
+  subgraph TB3["TurtleBot3 role"]
     MIC["Microphone"]
     CAM["Camera"]
     EXEC["Behavior executor\ndry_run=true by default"]
     OUT["Speech · Face · Bounded motion"]
     UI["Touch UI :8765"]
   end
-  subgraph SERVER["Server PC · 192.168.250.30"]
+  subgraph SERVER["Server PC role"]
     ASR["SenseVoice ASR"]
     CLIENT["VLM client · validator · policy guard"]
     LOG["Evaluation logger"]
     WEB["Platform console :8775"]
     TTS["TTS"]
   end
-  subgraph AI["AI Max · 192.168.64.246"]
+  subgraph AI["AI Max role"]
     LLAMA["llama.cpp · Qwen3-VL-8B :18082"]
     DASH["VLM dashboard :18181"]
   end
@@ -89,6 +89,21 @@ never publishes `/cmd_vel` directly.
 | `/robot_motion/action_cmd` | Behavior executor | Motion controller | Whitelisted motion action |
 | `/robot_a/cmd_vel` | Motion controller | TurtleBot3 base | Final velocity command |
 
-The static Fast DDS peer profile and `ROS_DOMAIN_ID=30` form the current ROS
-discovery contract. See [hardware.md](hardware.md) for device discovery and
-[limitations.md](limitations.md) for routed-network and research boundaries.
+## Deployment control plane
+
+```mermaid
+flowchart LR
+  M["One host manifest\nall three roles"] --> V["Schema + repository + commit validation"]
+  A["One immutable Git commit"] --> V
+  V --> AIH["AI Max runtime env"]
+  V --> SH["Server runtime env + generated Fast DDS"]
+  V --> TH["TB3 runtime env + generated Fast DDS"]
+  AIH --> S["Status: manifest ID · SHA-256 · commit"]
+  SH --> S
+  TH --> S
+```
+
+The manifest's ROS domain and generated peer profile form the discovery
+configuration. `/workspace/ros2_ws` is a container-image contract, while host
+workspace paths remain manifest data. See [hardware.md](hardware.md) and
+[limitations.md](limitations.md).

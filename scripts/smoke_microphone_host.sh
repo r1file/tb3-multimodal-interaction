@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEVICE="${TB3_MIC_DEVICE:-plughw:CARD=Device,DEV=0}"
+DEVICE="${TB3_MIC_ALSA_DEVICE:?TB3_MIC_ALSA_DEVICE is required from the host manifest}"
 DURATION="${1:-5}"
 OUT="${2:-/tmp/tb3_usb_mic_test.wav}"
 

@@ -5,9 +5,9 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    dashboard_port = int(os.environ.get('SERVER_DASHBOARD_PORT', '8775'))
-    tb3_ip = os.environ.get('TB3_IP', '192.168.250.10')
-    tb3_ui_port = int(os.environ.get('TB3_UI_PORT', '8765'))
+    dashboard_port = int(os.environ['SERVER_DASHBOARD_PORT'])
+    tb3_ip = os.environ['TB3_IP']
+    tb3_ui_port = int(os.environ['TB3_UI_PORT'])
 
     return LaunchDescription([
         Node(

@@ -2,6 +2,7 @@ import json
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
+import re
 import subprocess
 import threading
 import time
@@ -264,9 +265,17 @@ class FaceDisplay(Node):
     def __init__(self):
         super().__init__('face_display_node')
         self.declare_parameter('web_root', '/tmp/tb3_face_gui')
-        self.declare_parameter('port', 8765)
+        self.declare_parameter('port', 0)
+        self.declare_parameter('camera_device', '')
+        self.declare_parameter('mic_alsa_device', '')
+        self.declare_parameter('speaker_alsa_device', '')
         self.web_root = Path(str(self.get_parameter('web_root').value))
         self.port = int(self.get_parameter('port').value)
+        if not 1 <= self.port <= 65535:
+            raise ValueError('port must be supplied by the host manifest')
+        self.camera_device = str(self.get_parameter('camera_device').value)
+        self.mic_alsa_device = str(self.get_parameter('mic_alsa_device').value)
+        self.speaker_alsa_device = str(self.get_parameter('speaker_alsa_device').value)
         self.web_root.mkdir(parents=True, exist_ok=True)
         (self.web_root / 'index.html').write_text(HTML, encoding='utf-8')
         self._status_lock = threading.Lock()
@@ -494,9 +503,9 @@ class FaceDisplay(Node):
             ai_status = self._ai_status
             behavior_status = self._behavior_status
         return {
-            'camera': 'ok' if Path('/dev/video0').exists() else 'missing',
-            'mic': self.describe_capture_card(('Device', 'USB PnP Sound Device', 'Camera')),
-            'speaker': self.describe_playback_card('UACDemoV10'),
+            'camera': 'ok' if Path(self.camera_device).exists() else 'missing',
+            'mic': self.describe_capture_card(self.alsa_card_name(self.mic_alsa_device)),
+            'speaker': self.describe_playback_card(self.alsa_card_name(self.speaker_alsa_device)),
             'brightness': self.describe_brightness(),
             'av': av_status,
             'ai': self.compact_status(ai_status),
@@ -648,6 +657,10 @@ class FaceDisplay(Node):
 
     def describe_capture_card(self, card_names):
         return self.card_visible(['arecord', '-l'], card_names)
+
+    def alsa_card_name(self, device):
+        match = re.search(r'CARD=([^,]+)', str(device or ''))
+        return match.group(1) if match else str(device or '')
 
     def card_visible(self, cmd, card_names):
         if isinstance(card_names, str):

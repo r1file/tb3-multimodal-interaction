@@ -5,6 +5,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 python3 scripts/audit_repository.py
+python3 deploy/host_manifest.py validate \
+  --manifest config/host-manifest.example.toml --allow-template
 git diff --check
 
 while IFS= read -r -d '' script; do
@@ -40,6 +42,7 @@ tests=(
   test/test_dashboard_observability_contract.py
   test/test_demo_matrix.py
   test/test_evaluation_schema.py
+  test/test_host_manifest.py
   test/test_role_status_contract.py
   test/test_tb3_browser_single_instance_contract.py
 )

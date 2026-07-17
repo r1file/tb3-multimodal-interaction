@@ -5,7 +5,8 @@
 - Keep deployment changes reviewable through short-lived branches.
 - Run `bash scripts/validate_repository.sh` before staging.
 - Pull on each host with `git pull --ff-only`; never edit host-specific source.
-- Put machine values in ignored `.env` files.
+- Put the complete topology in one ignored/external host manifest; never edit
+  source on one runtime host.
 - Tag the first verified three-host migration before removing old package trees.
 
 The runtime hosts use independent read-only deploy keys. Their networks block

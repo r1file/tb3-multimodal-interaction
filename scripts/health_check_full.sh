@@ -6,7 +6,8 @@ source /workspace/ros2_ws/install/setup.bash
 source /workspace/ros2_ws/src/tb3_multimodal_interaction/scripts/ros_env.sh
 
 MODE="${1:-full}"
-TB3_UI_PORT="${TB3_UI_PORT:-8765}"
+TB3_UI_PORT="${TB3_UI_PORT:?TB3_UI_PORT is required from the host manifest}"
+TB3_CMD_VEL_CANDIDATES="${TB3_CMD_VEL_CANDIDATES:?TB3_CMD_VEL_CANDIDATES is required from the host manifest}"
 TOPIC_TIMEOUT_S="${ROS_TOPIC_TIMEOUT_S:-4}"
 TOPIC_RETRY_S="${ROS_TOPIC_RETRY_S:-12}"
 FAIL=0
@@ -78,7 +79,10 @@ require_sub() {
 require_cmd_vel_sub() {
   local topic
   local count
-  for topic in /cmd_vel /robot_a/cmd_vel /robot_b/cmd_vel; do
+  IFS=',' read -r -a cmd_vel_candidates <<<"$TB3_CMD_VEL_CANDIDATES"
+  for topic in "${cmd_vel_candidates[@]}"; do
+    topic="${topic//[[:space:]]/}"
+    [[ -n "$topic" ]] || continue
     count="$(wait_count_subscribers "$topic")"
     if [ "${count:-0}" -gt 0 ] 2>/dev/null; then
       echo "ok cmd_vel_sub $topic $count"

@@ -13,7 +13,7 @@ from std_msgs.msg import String
 class CameraCapture(Node):
     def __init__(self):
         super().__init__('camera_capture_node')
-        self.declare_parameter('device', '/dev/video0')
+        self.declare_parameter('device', '')
         self.declare_parameter('image_topic', '/robot_camera/jpeg')
         self.declare_parameter('status_topic', '/robot_camera/status')
         self.declare_parameter('width', 640)
@@ -22,6 +22,8 @@ class CameraCapture(Node):
         self.declare_parameter('jpeg_quality', 5)
 
         self.device = str(self.get_parameter('device').value)
+        if not self.device:
+            raise ValueError('camera device must be supplied by the host manifest launch path')
         self.width = int(self.get_parameter('width').value)
         self.height = int(self.get_parameter('height').value)
         self.fps = int(self.get_parameter('fps').value)

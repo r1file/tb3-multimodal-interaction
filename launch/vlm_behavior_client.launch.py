@@ -13,11 +13,8 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     {
-                        "llama_base_url": EnvironmentVariable(
-                            "VLM_BASE_URL",
-                            default_value="http://192.168.64.246:18082",
-                        ),
-                        "model": EnvironmentVariable("VLM_MODEL", default_value="qwen3vl8b"),
+                        "llama_base_url": EnvironmentVariable("VLM_BASE_URL"),
+                        "model": EnvironmentVariable("VLM_MODEL"),
                         "publish_plans": EnvironmentVariable(
                             "VLM_PUBLISH_PLANS",
                             default_value="true",

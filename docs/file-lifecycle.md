@@ -6,7 +6,7 @@
 - Functional startup, health, and smoke scripts.
 - Dockerfiles and role-specific Compose templates.
 - AI Max llama.cpp wrappers and read-only dashboard.
-- `.env.example`, deployment, migration, rollback, and architecture docs.
+- Host-manifest template, deployment, migration, rollback, and architecture docs.
 - Small JSON/TXT fixtures and summarized evaluation Markdown/JSON.
 
 ## Archive outside Git
@@ -27,5 +27,5 @@
 ## Never commit
 
 - GGUF models, Hugging Face caches, SenseVoice model cache, WAV/MP4 data.
-- Passwords, SSH material, tokens, private `.env`, or machine keyrings.
+- Passwords, SSH material, tokens, populated host manifests, or machine keyrings.
 - Large generated build/install/log directories.

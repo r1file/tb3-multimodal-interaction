@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import tempfile
 import time
 import unittest
@@ -6,6 +7,9 @@ from pathlib import Path
 
 
 MODULE_PATH = Path(__file__).parents[1] / "deploy" / "role_status.py"
+os.environ.setdefault("ROLE_STARTUP_GRACE_S", "180")
+os.environ.setdefault("ROLE_STATUS_STALE_S", "30")
+os.environ.setdefault("ROLE_DASHBOARD_TIMEOUT_S", "5")
 SPEC = importlib.util.spec_from_file_location("role_status", MODULE_PATH)
 role_status = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(role_status)

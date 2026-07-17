@@ -1,4 +1,5 @@
-FROM ros-cui/turtlebot3:jazzy-av-tools
+ARG AV_TOOLS_BASE_IMAGE
+FROM ${AV_TOOLS_BASE_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PIP_NO_CACHE_DIR=1
@@ -18,13 +19,14 @@ RUN apt-get update && \
 
 RUN python3 -m pip install --break-system-packages \
         --index-url https://download.pytorch.org/whl/cpu \
-        torch && \
+        torch==2.13.0+cpu && \
     python3 -m pip install --break-system-packages \
-        soundfile \
-        numpy \
-        requests \
-        "kokoro>=0.9.4" \
-        "misaki[ja,zh]" && \
+        soundfile==0.14.0 \
+        numpy==1.26.4 \
+        requests==2.34.2 \
+        kokoro==0.9.4 \
+        "misaki[ja,zh]==0.9.4" \
+        unidic==1.1.0 && \
     python3 -m unidic download
 
 RUN python3 - <<'PY'

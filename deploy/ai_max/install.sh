@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export TB3_ROLE="${TB3_ROLE:-ai_max}"
 source "$SCRIPT_DIR/../lib/load_env.sh"
 
 test -x "$LLAMA_SERVER" || { echo "Missing executable: $LLAMA_SERVER" >&2; exit 1; }

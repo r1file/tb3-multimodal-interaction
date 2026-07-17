@@ -3,8 +3,8 @@ set -uo pipefail
 
 URL="${1:?URL is required}"
 PROFILE_DIR="${2:?profile directory is required}"
-DISPLAY_VALUE="${3:-:0}"
-OPENBOX_UNIT="${4:-tb3-ui-openbox.service}"
+DISPLAY_VALUE="${3:?display is required}"
+OPENBOX_UNIT="${4:?Openbox unit is required}"
 browser_pid=""
 
 openbox_ready() {

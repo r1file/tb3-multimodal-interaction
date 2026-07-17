@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: bash deploy/preflight.sh <ai_max|server_pc|tb3> [--phase install|runtime]
+Usage: bash deploy/preflight.sh <ai_max|server_pc|tb3> [--phase install|runtime] [--manifest PATH]
 
 install: verify host prerequisites, external assets, routes, devices, and ports.
 runtime: include service health and ROS discovery checks after startup.
@@ -15,6 +15,7 @@ EOF
 
 ROLE="${1:-}"
 PHASE="install"
+MANIFEST="${TB3_HOST_MANIFEST:-$REPO_ROOT/host-manifest.toml}"
 if [[ $# -gt 0 ]]; then
   shift
 fi
@@ -22,6 +23,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --phase)
       PHASE="${2:-}"
+      shift 2
+      ;;
+    --manifest)
+      MANIFEST="${2:-}"
       shift 2
       ;;
     -h|--help)
@@ -115,7 +120,7 @@ check_port_value() {
   if [[ "$value" =~ ^[0-9]+$ ]] && ((value >= 1 && value <= 65535)); then
     pass "$name=$value is a valid TCP port"
   else
-    fail "$name='$value' is invalid; set an integer from 1 to 65535 in .env"
+    fail "$name='$value' is invalid; set an integer from 1 to 65535 in the host manifest"
   fi
 }
 
@@ -125,7 +130,7 @@ check_ip_value() {
   if [[ "$value" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
     pass "$name=$value has IPv4 syntax"
   else
-    fail "$name='$value' is invalid; set a reachable IPv4 address in .env"
+    fail "$name='$value' is invalid; set a reachable IPv4 address in the host manifest"
   fi
 }
 
@@ -136,7 +141,7 @@ check_local_address() {
   elif ip -4 -o addr show 2>/dev/null | awk '{print $4}' | grep -Eq "^${expected_ip//./\\.}/"; then
     pass "configured role address is present locally: $expected_ip"
   else
-    fail "configured role address $expected_ip is not assigned to this host; correct .env or network configuration"
+    fail "configured role address $expected_ip is not assigned to this host; correct the host manifest or network configuration"
   fi
 }
 
@@ -256,19 +261,59 @@ check_repo() {
   fi
 }
 
+check_git_commit() {
+  local path="$1"
+  local expected_commit="$2"
+  local label="$3"
+  require_dir "$path" "restore the pinned $label checkout"
+  [[ -d "$path" ]] || return
+  local actual
+  actual="$(git -C "$path" rev-parse HEAD 2>/dev/null)"
+  if [[ "$actual" == "$expected_commit" ]]; then
+    pass "$label commit is pinned: $expected_commit"
+  else
+    fail "$label commit mismatch: expected=$expected_commit actual=${actual:-unreadable}"
+  fi
+}
+
+check_file_digest() {
+  local path="$1"
+  local expected="$2"
+  local label="$3"
+  require_file "$path" "restore the pinned $label asset"
+  [[ -s "$path" ]] || return
+  if [[ "$PHASE" != "install" ]]; then
+    pass "$label digest was deferred to install preflight"
+    return
+  fi
+  local actual
+  actual="$(sha256sum "$path" 2>/dev/null | awk '{print $1}')"
+  if [[ "$actual" == "$expected" ]]; then
+    pass "$label SHA-256 matches the manifest"
+  else
+    fail "$label SHA-256 mismatch: expected=$expected actual=${actual:-unreadable}"
+  fi
+}
+
 check_fastdds_profile() {
-  local checkout="$1"
-  local profile="$checkout/config/fastdds_initial_peers.xml"
-  require_file "$profile" "restore the tracked Fast DDS initial-peers profile"
-  [[ -s "$profile" ]] || return
-  local peer
-  for peer in "$SERVER_PC_IP" "$TB3_IP"; do
-    if grep -Fq "<address>$peer</address>" "$profile"; then
-      pass "Fast DDS profile includes configured peer: $peer"
-    else
-      fail "Fast DDS profile does not include configured peer $peer; update config/fastdds_initial_peers.xml after changing network addresses"
-    fi
-  done
+  local expected
+  expected="$(python3 "$REPO_ROOT/deploy/host_manifest.py" render-fastdds \
+    --manifest "$TB3_HOST_MANIFEST" --role "$ROLE" --repo-root "$REPO_ROOT" 2>/dev/null)"
+  if [[ -z "$expected" ]]; then
+    fail "cannot generate Fast DDS profile from host manifest"
+    return
+  fi
+  pass "Fast DDS peer profile is derivable from the manifest"
+  if [[ "$PHASE" != "runtime" ]]; then
+    return
+  fi
+  require_file "$HOST_FASTDDS_PROFILE" "run 'bash deploy/role.sh $ROLE install' to render the manifest profile"
+  [[ -s "$HOST_FASTDDS_PROFILE" ]] || return
+  if diff -u <(printf '%s\n' "$expected") "$HOST_FASTDDS_PROFILE" >/dev/null 2>&1; then
+    pass "installed Fast DDS profile matches the host manifest"
+  else
+    fail "installed Fast DDS profile is stale; rerun role install with the current manifest"
+  fi
 }
 
 check_ros_runtime() {
@@ -324,21 +369,19 @@ check_ros_runtime() {
   fi
 }
 
-if [[ ! -f "$REPO_ROOT/.env" ]]; then
-  fail "missing $REPO_ROOT/.env; copy .env.example to .env and verify every role-specific value before building"
-fi
-
-# load_env.sh also supplies safe defaults so all remaining failures can be shown
-# in one run even when .env is incomplete.
+export TB3_ROLE="$ROLE"
+export TB3_HOST_MANIFEST="$MANIFEST"
 source "$SCRIPT_DIR/lib/load_env.sh"
 set +e
 
 printf 'Preflight role=%s phase=%s repo=%s\n' "$ROLE" "$PHASE" "$REPO_ROOT"
+pass "host manifest validated: id=$TB3_MANIFEST_ID sha256=$TB3_MANIFEST_SHA256 commit=$RELEASE_COMMIT"
 
 require_command git "install git"
 require_command curl "install curl"
 require_command ss "install iproute2"
 require_command ping "install iputils-ping"
+require_command sha256sum "install coreutils"
 check_docker
 
 if [[ -r /etc/os-release ]]; then
@@ -364,7 +407,7 @@ check_port_value TB3_UI_PORT "$TB3_UI_PORT"
 if [[ "$ROS_DOMAIN_ID" =~ ^[0-9]+$ ]] && ((ROS_DOMAIN_ID >= 0 && ROS_DOMAIN_ID <= 232)); then
   pass "ROS_DOMAIN_ID=$ROS_DOMAIN_ID is valid"
 else
-  fail "ROS_DOMAIN_ID='$ROS_DOMAIN_ID' is invalid; choose 0..232 in .env and use the same value on Server PC and TB3"
+  fail "ROS_DOMAIN_ID='$ROS_DOMAIN_ID' is invalid; choose 0..232 in the host manifest"
 fi
 check_ntp
 
@@ -373,16 +416,17 @@ case "$ROLE" in
     check_local_address "$AI_MAX_IP"
     check_repo "$AI_MAX_REPO_DIR"
     require_dir "$LLAMA_CPP_DIR" "clone the tested llama.cpp revision listed in docs/prerequisites.md"
-    require_executable "$LLAMA_SERVER" "build llama.cpp with llama-server support and set LLAMA_SERVER in .env"
+    check_git_commit "$LLAMA_CPP_DIR" "$LLAMA_CPP_COMMIT" "llama.cpp"
+    require_executable "$LLAMA_SERVER" "build llama.cpp with llama-server support and set [ai_max].llama_server in the host manifest"
     if [[ -n "$VLM_MODEL_PATH" ]]; then
-      require_file "$VLM_MODEL_PATH" "download the tested Qwen GGUF and set VLM_MODEL_PATH in .env"
+      check_file_digest "$VLM_MODEL_PATH" "$VLM_MODEL_SHA256" "Qwen model"
     else
-      fail "VLM_MODEL_PATH is empty; set the absolute Qwen GGUF path in .env"
+      fail "VLM_MODEL_PATH is empty; set [ai_max].model_path in the host manifest"
     fi
     if [[ -n "$VLM_MMPROJ_PATH" ]]; then
-      require_file "$VLM_MMPROJ_PATH" "download the matching mmproj GGUF and set VLM_MMPROJ_PATH in .env"
+      check_file_digest "$VLM_MMPROJ_PATH" "$VLM_MMPROJ_SHA256" "Qwen mmproj"
     else
-      fail "VLM_MMPROJ_PATH is empty; set the matching mmproj GGUF path in .env"
+      fail "VLM_MMPROJ_PATH is empty; set [ai_max].mmproj_path in the host manifest"
     fi
     check_local_http_port "$VLM_PORT" /health "llama-server" "run 'bash deploy/ai_max/start.sh'"
     check_local_http_port "$VLM_DASHBOARD_PORT" / "AI Max dashboard" "run 'bash deploy/ai_max/start.sh'"
@@ -390,10 +434,15 @@ case "$ROLE" in
   server_pc)
     check_local_address "$SERVER_PC_IP"
     check_repo "$SERVER_REPO_DIR"
-    check_fastdds_profile "$SERVER_REPO_DIR"
-    require_dir "$SERVER_COMPOSE_DIR" "clone ROBOTIS turtlebot3 and set SERVER_COMPOSE_DIR in .env"
-    require_file "$SENSEVOICE_MODEL_DIR/model.pt" "place SenseVoiceSmall under the configured model cache before docker compose build"
-    check_compose_services "$SERVER_COMPOSE_DIR" turtlebot3 tb3_asr tb3_tts
+    check_fastdds_profile
+    require_dir "$SERVER_COMPOSE_DIR" "clone ROBOTIS turtlebot3 and set [server_pc].compose_dir in the host manifest"
+    check_git_commit "$ROBOTIS_REPO_DIR" "$ROBOTIS_COMMIT" "ROBOTIS turtlebot3"
+    check_file_digest "$SENSEVOICE_MODEL_DIR/model.pt" "$SENSEVOICE_MODEL_SHA256" "SenseVoiceSmall model.pt"
+    if [[ "$PHASE" == "install" ]]; then
+      check_compose_services "$REPO_ROOT/deploy/server_pc/docker" turtlebot3 tb3_asr tb3_tts
+    else
+      check_compose_services "$SERVER_COMPOSE_DIR" turtlebot3 tb3_asr tb3_tts
+    fi
     check_route "$AI_MAX_IP" "AI Max"
     check_route "$TB3_IP" "TurtleBot3"
     check_local_http_port "$SERVER_DASHBOARD_PORT" /status.json "Server dashboard" "run 'bash deploy/server_pc/start.sh'"
@@ -405,9 +454,21 @@ case "$ROLE" in
   tb3)
     check_local_address "$TB3_IP"
     check_repo "$TB3_REPO_DIR"
-    check_fastdds_profile "$TB3_REPO_DIR"
-    require_dir "$TB3_COMPOSE_DIR" "clone ROBOTIS turtlebot3 and set TB3_COMPOSE_DIR in .env"
-    check_compose_services "$TB3_COMPOSE_DIR" turtlebot3
+    check_fastdds_profile
+    require_dir "$TB3_COMPOSE_DIR" "clone ROBOTIS turtlebot3 and set [tb3].compose_dir in the host manifest"
+    check_git_commit "$ROBOTIS_REPO_DIR" "$ROBOTIS_COMMIT" "ROBOTIS turtlebot3"
+    actual_home="$(getent passwd "$(id -un)" 2>/dev/null | cut -d: -f6)"
+    actual_home="${actual_home:-${HOME:-}}"
+    if [[ "${actual_home%/}" == "${TB3_HOME_DIR%/}" ]]; then
+      pass "TB3 home belongs to the deployment user: $TB3_HOME_DIR"
+    else
+      fail "[tb3].home_dir=$TB3_HOME_DIR does not match the deployment user's home $actual_home"
+    fi
+    if [[ "$PHASE" == "install" ]]; then
+      check_compose_services "$REPO_ROOT/deploy/tb3/docker" turtlebot3
+    else
+      check_compose_services "$TB3_COMPOSE_DIR" turtlebot3
+    fi
     require_command arecord "install alsa-utils"
     require_command aplay "install alsa-utils"
     require_command xhost "install x11-xserver-utils"
@@ -422,7 +483,7 @@ case "$ROLE" in
       if [[ -e "$device_path" ]]; then
         pass "$device_label device exists: $device_path"
       else
-        fail "$device_label device is missing at $device_path; reconnect hardware or correct the device path in .env"
+        fail "$device_label device is missing at $device_path; reconnect hardware or correct the host manifest"
       fi
     done
     mic_card="${TB3_MIC_ALSA_DEVICE#*CARD=}"

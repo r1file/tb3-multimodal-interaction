@@ -12,9 +12,9 @@ from pathlib import Path
 
 
 ROLE = sys.argv[1] if len(sys.argv) > 1 else ""
-GRACE = float(os.environ.get("ROLE_STARTUP_GRACE_S", "180"))
-STALE_S = float(os.environ.get("ROLE_STATUS_STALE_S", "30"))
-DASHBOARD_TIMEOUT_S = float(os.environ.get("ROLE_DASHBOARD_TIMEOUT_S", "5"))
+GRACE = float(os.environ["ROLE_STARTUP_GRACE_S"])
+STALE_S = float(os.environ["ROLE_STATUS_STALE_S"])
+DASHBOARD_TIMEOUT_S = float(os.environ["ROLE_DASHBOARD_TIMEOUT_S"])
 VALID_STATES = {"starting", "stale", "missing", "unhealthy", "unreachable", "ready", "stopped"}
 
 
@@ -159,7 +159,7 @@ def ai_report():
     lifecycle = state_record(log_dir)
     llama_http, _ = http_json(f"http://127.0.0.1:{os.environ['VLM_PORT']}/health")
     llama_proc = process_component("llama_server", "llama-server")
-    dashboard = docker_state("tb3-ai-max-dashboard")
+    dashboard = docker_state(os.environ["AI_DASHBOARD_CONTAINER"])
     dashboard_http, dashboard_payload = http_json(
         f"http://127.0.0.1:{os.environ['VLM_DASHBOARD_PORT']}/api/status",
         timeout=DASHBOARD_TIMEOUT_S,
@@ -180,7 +180,11 @@ def server_report():
     lifecycle = state_record(log_dir)
     dashboard_http, payload = http_json(f"http://127.0.0.1:{os.environ['SERVER_DASHBOARD_PORT']}/status.json")
     ai_http, _ = http_json(f"http://{os.environ['AI_MAX_IP']}:{os.environ['VLM_PORT']}/health")
-    components = [docker_state(os.environ["ROS_CONTAINER"]), docker_state("tb3_asr"), docker_state("tb3_tts")]
+    components = [
+        docker_state(os.environ["ROS_CONTAINER"]),
+        docker_state(os.environ["ASR_CONTAINER"]),
+        docker_state(os.environ["TTS_CONTAINER"]),
+    ]
     ros_components = ros_node_components(
         [
             ("server_control", "/server_control_node"),
@@ -229,7 +233,19 @@ def main():
         print("usage: role_status.py ai_max|server_pc|tb3", file=sys.stderr)
         return 2
     lifecycle, components, logs = builders[ROLE]()
-    report = {"role": ROLE, "time": int(time.time()), "overall_state": overall(components, lifecycle), "lifecycle": lifecycle, "components": components, "logs": logs}
+    report = {
+        "role": ROLE,
+        "time": int(time.time()),
+        "overall_state": overall(components, lifecycle),
+        "deployment": {
+            "manifest_id": os.environ["TB3_MANIFEST_ID"],
+            "manifest_sha256": os.environ["TB3_MANIFEST_SHA256"],
+            "release_commit": os.environ["RELEASE_COMMIT"],
+        },
+        "lifecycle": lifecycle,
+        "components": components,
+        "logs": logs,
+    }
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
     return 0 if report["overall_state"] == "ready" else 3
 

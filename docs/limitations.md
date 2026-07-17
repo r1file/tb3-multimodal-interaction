@@ -17,8 +17,9 @@ capability.
   or low-quality text; these outcomes remain in evaluation data.
 - The VLM may still require deterministic validator/policy repair. A one-time
   format-only retry remains deferred until measured failures justify it.
-- ROS discovery depends on the static Fast DDS peer profile and matching domain
-  configuration. Address changes require a coordinated profile update.
+- ROS discovery depends on the manifest's shared domain and its generated Fast
+  DDS peer profile. Address changes require one new manifest distributed to all
+  three hosts.
 - AI Max receives Server status through a push relay because routed connectivity
   is asymmetric; direct dashboard fetch is best-effort.
 - Runtime hosts assume the ROBOTIS Jazzy Compose workspace/container contract.

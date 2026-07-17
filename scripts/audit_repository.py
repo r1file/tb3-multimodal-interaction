@@ -35,6 +35,11 @@ def main() -> int:
             continue
         if path.name == ".env":
             failures.append((path, "private environment file"))
+        if path.parent == Path(".") and (
+            path.name == "host-manifest.toml"
+            or (path.name.startswith("host-manifest.") and path.suffix == ".toml")
+        ):
+            failures.append((path, "populated deployment manifest"))
         if path.suffix.lower() in FORBIDDEN_SUFFIXES:
             failures.append((path, f"forbidden artifact suffix {path.suffix}"))
         if path.stat().st_size > MAX_BYTES:

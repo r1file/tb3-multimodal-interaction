@@ -1,10 +1,12 @@
 services:
   turtlebot3:
-    container_name: turtlebot3
-    image: ros-cui/turtlebot3:jazzy-av-tools
+    container_name: ${ROS_CONTAINER}
+    image: ${ROS_IMAGE}
     build:
       context: .
       dockerfile: Dockerfile.av-tools
+      args:
+        ROBOTIS_BASE_IMAGE: ${ROBOTIS_BASE_IMAGE}
     tty: true
     restart: unless-stopped
     cap_add:
@@ -17,27 +19,31 @@ services:
     ipc: host
     pid: host
     environment:
-     - DISPLAY=${DISPLAY}
+     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+     - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
+     - TB3_FASTDDS_PROFILE=${TB3_FASTDDS_PROFILE}
      - QT_X11_NO_MITSHM=1
-     - TURTLEBOT3_MODEL=burger
-     - LDS_MODEL=LDS-02
+     - TURTLEBOT3_MODEL=${TURTLEBOT3_MODEL}
+     - LDS_MODEL=${LDS_MODEL}
     volumes:
       - /dev:/dev
       - /dev/shm:/dev/shm
       - /run/udev:/run/udev
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
-      - ./workspace:/workspace
-      - ../../:/root/turtlebot3_ws/src/turtlebot3
+      - ${ROS_WORKSPACE_DIR}:/workspace
+      - ${ROBOTIS_REPO_DIR}:/root/turtlebot3_ws/src/turtlebot3
     privileged: true
     command: bash
 
   tb3_asr:
-    container_name: tb3_asr
-    image: ros-cui/turtlebot3:jazzy-asr
+    container_name: ${ASR_CONTAINER}
+    image: ${ASR_IMAGE}
     build:
       context: .
       dockerfile: Dockerfile.asr
+      args:
+        AV_TOOLS_BASE_IMAGE: ${ROS_IMAGE}
     tty: true
     restart: unless-stopped
     network_mode: host
@@ -45,11 +51,16 @@ services:
     depends_on:
       - turtlebot3
     environment:
-     - TURTLEBOT3_MODEL=burger
-     - LDS_MODEL=LDS-02
+     - TURTLEBOT3_MODEL=${TURTLEBOT3_MODEL}
+     - LDS_MODEL=${LDS_MODEL}
+     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+     - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
+     - TB3_FASTDDS_PROFILE=${TB3_FASTDDS_PROFILE}
+     - SENSEVOICE_MODEL_DIR=/root/.cache/modelscope/hub/models/iic/SenseVoiceSmall
     volumes:
       - /dev/shm:/dev/shm
-      - ./workspace:/workspace
+      - ${ROS_WORKSPACE_DIR}:/workspace
+      - ${SENSEVOICE_MODEL_DIR}:/root/.cache/modelscope/hub/models/iic/SenseVoiceSmall:ro
     command: >
       bash -lc "source /opt/ros/jazzy/setup.bash &&
       source /workspace/ros2_ws/install/setup.bash &&
@@ -57,11 +68,13 @@ services:
       ros2 launch tb3_multimodal_interaction asr_adapter.launch.py"
 
   tb3_tts:
-    container_name: tb3_tts
-    image: ros-cui/turtlebot3:jazzy-tts
+    container_name: ${TTS_CONTAINER}
+    image: ${TTS_IMAGE}
     build:
       context: .
       dockerfile: Dockerfile.tts
+      args:
+        AV_TOOLS_BASE_IMAGE: ${ROS_IMAGE}
     tty: true
     restart: unless-stopped
     network_mode: host
@@ -69,11 +82,14 @@ services:
     depends_on:
       - turtlebot3
     environment:
-     - TURTLEBOT3_MODEL=burger
-     - LDS_MODEL=LDS-02
+     - TURTLEBOT3_MODEL=${TURTLEBOT3_MODEL}
+     - LDS_MODEL=${LDS_MODEL}
+     - ROS_DOMAIN_ID=${ROS_DOMAIN_ID}
+     - ROS_AUTOMATIC_DISCOVERY_RANGE=${ROS_AUTOMATIC_DISCOVERY_RANGE}
+     - TB3_FASTDDS_PROFILE=${TB3_FASTDDS_PROFILE}
     volumes:
       - /dev/shm:/dev/shm
-      - ./workspace:/workspace
+      - ${ROS_WORKSPACE_DIR}:/workspace
     command: >
       bash -lc "source /opt/ros/jazzy/setup.bash &&
       source /workspace/ros2_ws/install/setup.bash &&

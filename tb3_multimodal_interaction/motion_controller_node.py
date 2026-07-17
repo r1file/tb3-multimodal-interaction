@@ -11,7 +11,7 @@ from std_msgs.msg import Bool, String
 class MotionController(Node):
     def __init__(self):
         super().__init__('motion_controller_node')
-        self.declare_parameter('cmd_vel_topic', '/cmd_vel')
+        self.declare_parameter('cmd_vel_topic', '')
         self.declare_parameter('max_linear_x', 0.10)
         self.declare_parameter('max_angular_z', 0.50)
         self.declare_parameter('default_duration', 0.6)
@@ -19,6 +19,8 @@ class MotionController(Node):
         self.declare_parameter('publish_hz', 20.0)
 
         cmd_vel_topic = self.get_parameter('cmd_vel_topic').value
+        if not isinstance(cmd_vel_topic, str) or not cmd_vel_topic.startswith('/'):
+            raise ValueError('cmd_vel_topic must be supplied by the host manifest')
         self.max_linear_x = float(self.get_parameter('max_linear_x').value)
         self.max_angular_z = float(self.get_parameter('max_angular_z').value)
         self.default_duration = float(self.get_parameter('default_duration').value)

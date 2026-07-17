@@ -1,33 +1,16 @@
-# AI Max VLM Server
+# AI Max VLM server
 
-Thin wrappers around the existing AI Max llama.cpp build and Qwen3-VL GGUF
-cache. The scripts do not install or modify llama.cpp.
+These are thin wrappers around an external llama.cpp build and Qwen3-VL
+GGUF/mmproj assets. They do not install or modify those dependencies.
 
-Defaults:
-
-- Model: `qwen3vl8b`
-- Port: `18082`
-- Context: `4096`
-- GPU layers: `999`
-- Logs: `/home/user/ROS_Cui/vlm_server_logs`
-
-Start a clean service:
+Normal operation uses the repository role entrypoint, which validates and
+exports the release manifest before invoking these wrappers:
 
 ```bash
-bash restart_qwen3vl_server.sh
+bash deploy/role.sh ai_max start --manifest PATH
+bash deploy/role.sh ai_max status --manifest PATH
 ```
 
-Use the smaller model explicitly:
-
-```bash
-MODEL=qwen3vl2b PORT=18081 bash restart_qwen3vl_server.sh
-```
-
-Health check:
-
-```bash
-bash check_llama_server.sh 192.168.64.246 18082
-```
-
-For normal three-host startup, use `../deploy/ai_max/start.sh` from the
-repository root.
+The direct wrappers intentionally require explicit model, path, port and GPU
+environment variables; they contain no host/model fallback path. Use them only
+for component diagnosis after loading the same manifest.
