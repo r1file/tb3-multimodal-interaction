@@ -67,6 +67,39 @@ def docker_state(name):
     return {"state": state, "ok": state == "ready", "name": name, "detail": f"{status}{('/' + health) if health else ''}"}
 
 
+def speech_model_state(name):
+    container = docker_state(name)
+    if not container["ok"]:
+        return container
+    result = run(
+        [
+            "docker",
+            "exec",
+            name,
+            "bash",
+            "-lc",
+            'test -s "${SPEECH_MODEL_READY_FILE:?}" && cat "$SPEECH_MODEL_READY_FILE"',
+        ]
+    )
+    if result.returncode != 0:
+        return {"state": "starting", "ok": False, "name": name, "detail": "models preloading"}
+    try:
+        marker = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return {"state": "unhealthy", "ok": False, "name": name, "detail": f"invalid model marker: {exc}"}
+    if marker.get("ready") is not True:
+        return {"state": "unhealthy", "ok": False, "name": name, "detail": "model marker is not ready"}
+    return {
+        "state": "ready",
+        "ok": True,
+        "name": name,
+        "detail": "models preloaded",
+        "engine": marker.get("engine", ""),
+        "languages": marker.get("languages", []),
+        "preload_ms": marker.get("preload_ms"),
+    }
+
+
 def process_count(pattern, container=None):
     command = ["ps", "-eo", "args="]
     if container:
@@ -182,8 +215,8 @@ def server_report():
     ai_http, _ = http_json(f"http://{os.environ['AI_MAX_IP']}:{os.environ['VLM_PORT']}/health")
     components = [
         docker_state(os.environ["ROS_CONTAINER"]),
-        docker_state(os.environ["ASR_CONTAINER"]),
-        docker_state(os.environ["TTS_CONTAINER"]),
+        speech_model_state(os.environ["ASR_CONTAINER"]),
+        speech_model_state(os.environ["TTS_CONTAINER"]),
     ]
     ros_components = ros_node_components(
         [

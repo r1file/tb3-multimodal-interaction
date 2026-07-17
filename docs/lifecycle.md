@@ -28,3 +28,11 @@ commit so three hosts can prove they run one deployment.
 States are `starting`, `stale`, `missing`, `unhealthy`, `unreachable`, `ready`
 and `stopped`. Critical duplicate processes/nodes are unhealthy. ROS checks use
 one graph snapshot plus one bounded fresh-discovery retry.
+
+Server PC startup does not report ready while speech models are still loading.
+The ASR container preloads the single multilingual SenseVoiceSmall model. The
+TTS container constructs and warms the existing Japanese, Chinese and English
+Kokoro pipelines and voices. Each container writes a private readiness marker,
+and the canonical Server PC launcher waits for both markers within the manifest
+startup grace period. Language selection continues through the existing adapter;
+no additional routing service is introduced.

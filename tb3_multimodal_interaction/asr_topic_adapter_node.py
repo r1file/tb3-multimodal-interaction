@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import threading
 import time
@@ -46,9 +47,35 @@ class AsrTopicAdapter(Node):
         self._audio = bytearray()
         self._started_at = 0.0
         self._model = None
-        self.get_logger().info(
-            f'ASR adapter ready: {audio_topic} -> {text_topic}, request={request_topic}'
+        self._model_ready_file = Path(
+            os.environ.get('SPEECH_MODEL_READY_FILE', '/tmp/tb3_asr_model_ready.json')
         )
+        self._model_ready_file.unlink(missing_ok=True)
+        preload_ms = self.preload_model()
+        self.get_logger().info(
+            f'ASR adapter ready: {audio_topic} -> {text_topic}, request={request_topic}, '
+            f'model_preloaded=true, preload_ms={preload_ms}'
+        )
+
+    def preload_model(self):
+        started = time.perf_counter()
+        self.load_model()
+        preload_ms = int((time.perf_counter() - started) * 1000)
+        self._model_ready_file.parent.mkdir(parents=True, exist_ok=True)
+        self._model_ready_file.write_text(
+            json.dumps(
+                {
+                    'ready': True,
+                    'engine': 'SenseVoiceSmall',
+                    'languages': ['zh', 'ja', 'en'],
+                    'preload_ms': preload_ms,
+                    'time': time.time(),
+                },
+                separators=(',', ':'),
+            ),
+            encoding='utf-8',
+        )
+        return preload_ms
 
     def on_audio(self, msg):
         with self._lock:
