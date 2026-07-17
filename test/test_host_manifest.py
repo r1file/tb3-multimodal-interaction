@@ -218,7 +218,11 @@ def test_manifest_values_reach_canonical_runtime():
     assert 'os.environ["TB3_CMD_VEL_CANDIDATES"]' in readiness
     assert 'TB3_CMD_VEL_CANDIDATES:?' in health
     assert "--no-daemon --spin-time 5" in device_start
-    assert "--no-daemon --spin-time 5" in health
+    assert "check_ros_graph_contract.py" in health
+    graph_contract = (ROOT / "scripts" / "check_ros_graph_contract.py").read_text(encoding="utf-8")
+    assert 'os.environ["TB3_CMD_VEL_CANDIDATES"]' in graph_contract
+    assert "node.count_publishers" in graph_contract
+    assert "node.count_subscribers" in graph_contract
     tb3_stack = (ROOT / "scripts" / "start_tb3_stack_host.sh").read_text(encoding="utf-8")
     assert "ros2 node list --no-daemon --spin-time 5" in tb3_stack
     for role in ("server_pc", "tb3"):
